@@ -11,8 +11,8 @@ from temporalio.service import RPCError, RPCStatusCode
 from temporalio.worker import ActivityInboundInterceptor, Interceptor, Worker
 
 from temporal_report.workflow import WeatherReport
-from weather_report.forecast import configure_telemetry
-from weather_report.report import arguments, batches, write_report
+
+from pydantic_report.report import arguments, batches, write_report
 
 TASK_QUEUE = "durable-weather"
 
@@ -68,7 +68,7 @@ async def run_cli(args):
 
 def main():
     args = arguments("temporal")
-    configure_telemetry("temporal")
+    logfire.configure(service_name="temporal-report", send_to_logfire=bool(os.getenv("LOGFIRE_TOKEN")), console=False)
     asyncio.run(run_cli(args))
 
 
@@ -99,5 +99,5 @@ async def run_worker():
 
 
 def worker():
-    configure_telemetry("temporal")
+    logfire.configure(service_name="temporal-report", send_to_logfire=bool(os.getenv("LOGFIRE_TOKEN")), console=False)
     asyncio.run(run_worker())

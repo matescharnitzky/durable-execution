@@ -6,13 +6,13 @@ from dbos import DBOS, DBOSClient, SetWorkflowID
 from pydantic_ai.durable_exec.dbos import DBOSDurability
 
 from pydantic_report.agent import forecast_batches, report_agent
-from weather_report.forecast import configure_telemetry
-from weather_report.report import arguments, batches, write_report
+
+from pydantic_report.report import arguments, batches, write_report
 
 
 def main():
     args = arguments("dbos")
-    configure_telemetry("dbos")
+    logfire.configure(service_name="dbos-report", send_to_logfire=bool(os.getenv("LOGFIRE_TOKEN")), console=False)
     database = os.getenv("DBOS_SYSTEM_DATABASE_URL") or (
         "postgresql://weather:weather-local@127.0.0.1:55432/weather_dbos"
     )
