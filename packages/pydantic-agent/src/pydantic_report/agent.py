@@ -1,37 +1,47 @@
-"""Use the shared Responses web-search request as a Pydantic AI model turn."""
+"""Weather agent shared by the two Pydantic AI durability backends."""
 
 import json
-from functools import partial
+import os
 
-from pydantic_ai import Agent
-from pydantic_ai.capabilities import Instrumentation
-from pydantic_ai.messages import ModelResponse, TextPart, UserPromptPart
-from pydantic_ai.models.function import FunctionModel
+from openai import AsyncOpenAI
+from pydantic_ai import Agent, WebSearchTool
+from pydantic_ai.capabilities import Instrumentation, NativeTool
 from pydantic_ai.models.instrumented import InstrumentationSettings
+from pydantic_ai.models.openai import OpenAIResponsesModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
-from weather_report.forecast import search_forecast
+from pydantic_report.report import FIXTURES, validate_batch
+
+SEARCH = json.loads(FIXTURES.joinpath("search.json").read_text(encoding="utf-8"))
 
 
-def forecast_turn(runtime, messages, _info):
-    prompt = next(part for part in messages[-1].parts if isinstance(part, UserPromptPart))
-    result = search_forecast(runtime, **json.loads(prompt.content))
-    return ModelResponse(parts=[TextPart(json.dumps(result))])
+async def api_key() -> str:
+    return os.environ["OPENAI_API_KEY"]
 
 
 def report_agent(runtime, durability):
+    client = AsyncOpenAI(api_key=api_key, max_retries=0, timeout=90)
+    model = OpenAIResponsesModel(
+        os.getenv("OPENAI_MODEL") or SEARCH["model"],
+        provider=OpenAIProvider(openai_client=client),
+    )
     return Agent(
-        FunctionModel(partial(forecast_turn, runtime), model_name="openai-responses-web-search"),
+        model,
         name=f"{runtime}_weather",
-        capabilities=[durability, Instrumentation(InstrumentationSettings(include_content=False))],
+        instructions=SEARCH["instructions"],
+        capabilities=[
+            NativeTool(WebSearchTool()),
+            durability,
+            Instrumentation(InstrumentationSettings(include_content=False)),
+        ],
     )
 
 
 async def forecast_batches(agent, run_id: str, forecast_date: str, batches: list[list[str]]) -> list[dict]:
     results = []
     for batch, cities in enumerate(batches, start=1):
-        prompt = json.dumps({
-            "run_id": run_id, "batch": batch, "forecast_date": forecast_date, "cities": cities,
-        })
-        result = await agent.run(prompt)
-        results.append(json.loads(result.output))
+        prompt = json.dumps({"forecast_date": forecast_date, "cities": cities})
+        result = await agent.run(prompt, metadata={"durable.run_id": run_id, "durable.batch": batch})
+        text = result.output.strip().removeprefix("```json").removesuffix("```").strip()
+        results.append(validate_batch(json.loads(text), forecast_date, cities))
     return results

@@ -9,4 +9,4 @@ uv run --locked dbos-report resume report-2 --output artifacts/dbos.html
 uv run --locked python tests/recovery/demo.py .venv/bin/dbos-report
 ```
 
-Each batch is one Pydantic AI model turn backed by the shared OpenAI Responses call. Hosted web search happens inside that turn. The DBOS integration records the turn as a model step. After worker death, DBOS launch recovered the original workflow and reused A. DBOS step retries handled both the 429 and lost response. The fixture recorded A, B, B in all three scenarios. The status command reads DBOS workflow and step metadata without starting a worker.
+Each batch is one Pydantic AI agent run with its native WebSearchTool and OpenAI Responses model. The DBOS integration records the turn as a model step. After worker death, DBOS launch recovered the original workflow and reused A. DBOS step retries handled both the 429 and lost response. The fixture recorded A, B, B in all three scenarios. The status command reads DBOS workflow and step metadata without starting a worker.

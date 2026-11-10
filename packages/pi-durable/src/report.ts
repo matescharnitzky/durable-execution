@@ -5,7 +5,7 @@ import { dirname } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
-const fixtures = new URL("../../../shared/src/weather_report/fixtures/", import.meta.url);
+const fixtures = new URL("../../../core/src/weather_core/fixtures/", import.meta.url);
 export const search = JSON.parse(readFileSync(new URL("search.json", fixtures), "utf8")) as {
   model: string; instructions: string;
 };

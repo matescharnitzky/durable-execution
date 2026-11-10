@@ -86,7 +86,7 @@ async function main() {
       const message = entry?.model?.find(part => part.role === "assistant");
       const text = message?.content.find(part => part.type === "text");
       if (!text) throw new Error(`Pi submission ${submission.id} has no forecast`);
-      results.push(validateBatch(JSON.parse(text.text), input));
+      results.push(validateBatch(JSON.parse(text.text.trim().replace(/^```json\s*|\s*```$/g, "")), input));
     }
     await writeReport(values.output!, results);
   } finally {
