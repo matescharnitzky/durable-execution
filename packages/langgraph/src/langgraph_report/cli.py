@@ -5,7 +5,7 @@ from pathlib import Path
 
 from langgraph_report.config import Settings
 from langgraph_report.observability import configure_telemetry
-from langgraph_report.report import batches, write_report
+from langgraph_report.report import report_cities, validate_report, write_report
 
 
 def arguments() -> argparse.Namespace:
@@ -18,7 +18,7 @@ def arguments() -> argparse.Namespace:
             command.add_argument("--output", type=Path, required=True)
         if name == "run":
             command.add_argument("--date", type=date.fromisoformat, required=True)
-            command.add_argument("--fixture", action="store_true", help="Use two one-city batches")
+            command.add_argument("--fixture", action="store_true", help="Use the two fixture cities")
     return parser.parse_args()
 
 
@@ -27,6 +27,7 @@ def main() -> None:
     settings = Settings()
     configure_telemetry(settings)
 
+    from langchain_core.messages import AIMessage, HumanMessage
     from langgraph.checkpoint.postgres import PostgresSaver
 
     from langgraph_report.graph import build_agent
@@ -43,33 +44,28 @@ def main() -> None:
             },
         }
         state = agent.get_state(config)
-        completed = len(state.values.get("results", []))
-        complete = bool(state.values) and completed == len(state.values["batches"])
+        messages = state.values.get("messages", [])
+        complete = bool(messages) and isinstance(messages[-1], AIMessage) and not state.next
         if args.command == "status":
             print(json.dumps({
                 "run_id": args.run_id,
                 "state": ("complete" if complete else "pending") if state.values else "unknown",
-                "completed_batches": completed,
                 "next": list(state.next),
             }))
             return
+
+        run_input = None
         if args.command == "run":
             if state.values:
                 raise SystemExit("Run ID already exists. Use resume.")
-            run_input = {
-                "messages": [],
-                "forecast_date": args.date.isoformat(),
-                "batches": batches(args.fixture),
-                "results": [],
-            }
-        else:
-            if not state.values:
-                raise SystemExit("Unknown run ID.")
-            run_input = None
-            if not complete and (not state.next or "forecast" in state.next):
-                # The earlier graph used a different pending node. Keep its committed batches.
-                run_input = {**state.values, "messages": []}
-        result = state.values
+            request = {"forecast_date": args.date.isoformat(), "cities": report_cities(args.fixture)}
+            run_input = {"messages": [HumanMessage(json.dumps(request))]}
+        elif not state.values:
+            raise SystemExit("Unknown run ID.")
+
         if not complete:
-            result = agent.invoke(run_input, config, durability="sync")
-        write_report(args.output, result["results"])
+            messages = agent.invoke(run_input, config, durability="sync")["messages"]
+        request = json.loads(messages[0].text)
+        answer = messages[-1].text.strip().removeprefix("```json").removesuffix("```").strip()
+        report = validate_report(json.loads(answer), request["forecast_date"], request["cities"])
+        write_report(args.output, [report])
