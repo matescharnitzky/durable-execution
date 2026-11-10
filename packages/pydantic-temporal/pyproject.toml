@@ -1,0 +1,16 @@
+[project]
+name = "temporal-report"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = ["pydantic-report", "pydantic-ai-slim[temporal]>=2.66,<3"]
+
+[project.scripts]
+temporal-report = "temporal_report.cli:main"
+temporal-report-worker = "temporal_report.cli:worker"
+
+[tool.uv.sources]
+pydantic-report = { workspace = true }
+
+[build-system]
+requires = ["uv_build==0.9.30"]
+build-backend = "uv_build"

@@ -72,6 +72,7 @@ def scenario(command: list[str], fault: str, worker: list[str] | None) -> dict:
     env = os.environ | {
         "OPENAI_BASE_URL": f"http://127.0.0.1:{server.server_port}/v1",
         "OPENAI_API_KEY": "fixture",
+        "DURABLE_FIXTURE": "1",
         "LOGFIRE_TOKEN": "",
     }
     run_id = f"demo-{fault}-{uuid.uuid4().hex}"

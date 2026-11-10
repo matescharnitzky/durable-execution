@@ -24,5 +24,20 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-weather@example.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-weather-local}
 
+  temporal:
+    image: temporalio/temporal:1.6.1
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/home/temporal/temporal.db"]
+    ports:
+      - "127.0.0.1:7233:7233"
+      - "127.0.0.1:8233:8233"
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - temporal:/home/temporal
+
 volumes:
+  temporal:
   postgres:
