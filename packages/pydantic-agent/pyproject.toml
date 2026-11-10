@@ -1,0 +1,12 @@
+[project]
+name = "pydantic-report"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = ["weather-report", "pydantic-ai-slim>=1,<3"]
+
+[tool.uv.sources]
+weather-report = { workspace = true }
+
+[build-system]
+requires = ["uv_build==0.9.30"]
+build-backend = "uv_build"
