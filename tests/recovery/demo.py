@@ -17,7 +17,7 @@ FIXTURE_DATE = "2027-01-15"
 FIXTURE = Path(__file__).resolve().parents[2] / "core/src/weather_core/fixtures/report.json"
 
 
-def scenario(command: list[str], fault: str, worker: list[str] | None, single_request: bool = False) -> dict:
+def scenario(command: list[str], fault: str, worker: list[str] | None, search_tool: bool = False) -> dict:
     report = json.loads(FIXTURE.read_text())
     requests = []
     request_held = threading.Event()
@@ -30,8 +30,12 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, single_re
         def do_POST(self):
             assert self.path == "/v1/responses", self.path
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            assert any(tool["type"] in ("web_search", "web_search_preview") for tool in body["tools"])
+            tools = body.get("tools", [])
+            hosted_search = any(tool["type"] in ("web_search", "web_search_preview") for tool in tools)
             request_input = body["input"]
+            tool_result = next(
+                (item for item in request_input if item.get("type") == "function_call_output"), None
+            ) if isinstance(request_input, list) else None
             if isinstance(request_input, list):
                 request_input = next(item["content"] for item in request_input if item.get("role") == "user")
             if isinstance(request_input, list):
@@ -39,21 +43,32 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, single_re
             forecast = json.loads(request_input)
             assert forecast["forecast_date"] == FIXTURE_DATE
             cities = forecast["cities"]
-            if single_request:
+            if search_tool:
                 assert cities == [row["city"] for row in report["forecasts"]]
-                request_key, request_number = "report", 1
+                request_key = "step"
+                if hosted_search:
+                    request_number = "search"
+                elif tool_result:
+                    assert json.loads(tool_result["output"]) == report
+                    request_number = "answer"
+                else:
+                    assert any(tool["type"] == "function" and tool["name"] == "web_search" for tool in tools)
+                    request_number = "plan"
                 result = report
+                inject_fault = request_number == "answer"
             else:
+                assert hosted_search
                 city, = cities
                 request_key = "batch"
                 request_number, = (
                     i for i, row in enumerate(report["forecasts"], start=1) if row["city"] == city
                 )
                 result = {**report, "forecasts": [report["forecasts"][request_number - 1]]}
+                inject_fault = request_number == 2
             attempt = 1 + sum(req[request_key] == request_number for req in requests)
             status = 200
             disposition = "returned"
-            if (single_request or request_number == 2) and attempt == 1:
+            if inject_fault and attempt == 1:
                 if fault == "crash":
                     disposition = "held"
                 elif fault == "rate-limit":
@@ -68,6 +83,24 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, single_re
             if disposition == "response-lost":
                 self.connection.shutdown(socket.SHUT_RDWR)
                 return
+            message = {
+                "id": "msg_fixture", "type": "message", "role": "assistant", "status": "completed",
+                "content": [{"type": "output_text", "text": json.dumps(result), "annotations": []}],
+            }
+            if hosted_search:
+                items = [
+                    {"id": "ws_fixture", "type": "web_search_call", "status": "completed",
+                     "action": {"type": "search", "query": f"forecast for {', '.join(cities)}"}},
+                    message,
+                ]
+            elif request_number == "plan":
+                items = [{
+                    "id": "fc_fixture", "type": "function_call", "status": "completed",
+                    "call_id": "call_fixture", "name": "web_search",
+                    "arguments": json.dumps({"query": json.dumps(forecast)}),
+                }]
+            else:
+                items = [message]
             response = {
                 "id": f"resp_fixture_{request_number}_{attempt}",
                 "object": "response",
@@ -76,16 +109,11 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, single_re
                 "status": "completed",
                 "parallel_tool_calls": False,
                 "tool_choice": "auto",
-                "tools": body["tools"],
+                "tools": tools,
                 "usage": {"input_tokens": 100, "output_tokens": 100, "total_tokens": 200,
                           "input_tokens_details": {"cached_tokens": 0},
                           "output_tokens_details": {"reasoning_tokens": 0}},
-                "output": [
-                    {"id": "ws_fixture", "type": "web_search_call", "status": "completed",
-                     "action": {"type": "search", "query": f"forecast for {', '.join(cities)}"}},
-                    {"id": "msg_fixture", "type": "message", "role": "assistant", "status": "completed",
-                     "content": [{"type": "output_text", "text": json.dumps(result), "annotations": []}]},
-                ],
+                "output": items,
             }
             if status == 429:
                 response = {"error": {"message": "Fixture rate limit", "type": "rate_limit_error"}}
@@ -124,6 +152,9 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, single_re
                 stop(worker_process or process)
                 stop(process)
                 release.set()
+                if search_tool:
+                    pending = subprocess.check_output([*command, "status", run_id], env=env, timeout=30, text=True)
+                    assert json.loads(pending)["next"] == ["model"], pending
                 if worker:
                     worker_process = subprocess.Popen(worker, env=env)
                 subprocess.run(
@@ -137,7 +168,7 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, single_re
                 assert forecast["city"] in html and forecast["sources"][0]["url"] in html
             status = subprocess.check_output([*command, "status", run_id], env=env, timeout=30, text=True)
             assert json.loads(status)["state"] == "complete", status
-            key, expected = ("report", [1, 1]) if single_request else ("batch", [1, 2, 2])
+            key, expected = ("step", ["plan", "search", "answer", "answer"]) if search_tool else ("batch", [1, 2, 2])
             assert [req[key] for req in requests] == expected, requests
             return {"scenario": fault, "run_id": run_id, "requests": requests, "native_status": json.loads(status)}
     finally:
@@ -152,14 +183,14 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, single_re
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("cli", help="Runtime CLI command, including any wrapper")
-    parser.add_argument("--single-request", action="store_true", help="Send both cities in one report request")
+    parser.add_argument("--search-tool", action="store_true", help="Exercise a separate search tool before the final report")
     parser.add_argument("--worker", help="Separate worker command, if needed")
     parser.add_argument("--scenario", choices=("crash", "rate-limit", "lost-response"))
     args = parser.parse_args()
     faults = [args.scenario] if args.scenario else ["crash", "rate-limit", "lost-response"]
     for fault in faults:
         worker = shlex.split(args.worker) if args.worker else None
-        print(json.dumps(scenario(shlex.split(args.cli), fault, worker, args.single_request)))
+        print(json.dumps(scenario(shlex.split(args.cli), fault, worker, args.search_tool)))
 
 
 if __name__ == "__main__":
