@@ -17,6 +17,5 @@ def forecast_model(settings: Settings) -> ChatOpenAI:
         model=settings.openai_model,
         api_key=api_key,
         use_responses_api=True,
-        max_retries=0,
         timeout=90,
     )
