@@ -4,6 +4,8 @@ version = "0.1.0"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "weather-core",
+    "langchain>=1,<2",
+    "pydantic-settings>=2,<3",
     "langchain-openai>=1,<2",
     "logfire>=5,<6",
     "openai>=2,<3",
