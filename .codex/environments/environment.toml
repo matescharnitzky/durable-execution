@@ -1,0 +1,10 @@
+version = 1
+name = "durable-execution"
+
+[setup]
+script = "make setup"
+
+[[actions]]
+name = "Check"
+icon = "test"
+command = "make check"
