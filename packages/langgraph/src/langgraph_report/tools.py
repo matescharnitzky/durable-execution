@@ -1,5 +1,6 @@
 """OpenAI Responses model and its hosted web search tool."""
 
+from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 
 from langgraph_report.config import Settings
@@ -20,3 +21,14 @@ def forecast_model(settings: Settings) -> ChatOpenAI:
         use_responses_api=True,
         timeout=90,
     )
+
+
+def web_search_tool(model: ChatOpenAI):
+    search_model = model.bind_tools([OPENAI_WEB_SEARCH], tool_choice="required")
+
+    @tool
+    def web_search(query: str) -> str:
+        """Search the web for current information and source URLs for the query."""
+        return search_model.invoke(query).text
+
+    return web_search
