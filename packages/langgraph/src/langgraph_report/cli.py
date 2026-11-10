@@ -1,35 +1,38 @@
+import argparse
 import json
-import os
+from datetime import date
+from pathlib import Path
 
-from langgraph_report.report import arguments, batches, write_report
+from langgraph_report.config import Settings, configure_telemetry
+from langgraph_report.report import batches, write_report
+
+
+def arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="langgraph-report")
+    commands = parser.add_subparsers(dest="command", required=True)
+    for name in ("run", "status", "resume"):
+        command = commands.add_parser(name)
+        command.add_argument("run_id")
+        if name != "status":
+            command.add_argument("--output", type=Path, required=True)
+        if name == "run":
+            command.add_argument("--date", type=date.fromisoformat, required=True)
+            command.add_argument("--fixture", action="store_true", help="Use two one-city batches")
+    return parser.parse_args()
 
 
 def main() -> None:
-    args = arguments("langgraph")
+    args = arguments()
+    settings = Settings()
+    configure_telemetry(settings)
 
-    # Logfire's LangGraph integration reads these before framework imports.
-    os.environ.pop("LANGSMITH_TRACING_MODE", None)
-    os.environ.update(
-        LANGSMITH_TRACING="true",
-        LANGSMITH_OTEL_ENABLED="true",
-        LANGSMITH_OTEL_ONLY="true",
-        LANGSMITH_HIDE_INPUTS="true",
-        LANGSMITH_HIDE_OUTPUTS="true",
-    )
-    import logfire
     from langgraph.checkpoint.postgres import PostgresSaver
 
-    from langgraph_report.graph import build_graph
+    from langgraph_report.graph import build_agent
 
-    logfire.configure(
-        service_name="langgraph-report",
-        send_to_logfire=bool(os.getenv("LOGFIRE_TOKEN")),
-        console=False,
-    )
-    database = os.getenv("LANGGRAPH_DATABASE_URL") or "postgresql://weather:weather-local@127.0.0.1:55432/weather"
-    with PostgresSaver.from_conn_string(database) as saver:
+    with PostgresSaver.from_conn_string(settings.database_url) as saver:
         saver.setup()
-        graph = build_graph(saver)
+        agent = build_agent(saver, settings)
         config = {
             "configurable": {"thread_id": args.run_id},
             "metadata": {
@@ -38,12 +41,14 @@ def main() -> None:
                 "durable.command": args.command,
             },
         }
-        state = graph.get_state(config)
+        state = agent.get_state(config)
+        completed = len(state.values.get("results", []))
+        complete = bool(state.values) and completed == len(state.values["batches"])
         if args.command == "status":
             print(json.dumps({
                 "run_id": args.run_id,
-                "state": ("pending" if state.next else "complete") if state.values else "unknown",
-                "completed_batches": len(state.values.get("results", [])),
+                "state": ("complete" if complete else "pending") if state.values else "unknown",
+                "completed_batches": completed,
                 "next": list(state.next),
             }))
             return
@@ -51,7 +56,7 @@ def main() -> None:
             if state.values:
                 raise SystemExit("Run ID already exists. Use resume.")
             run_input = {
-                "run_id": args.run_id,
+                "messages": [],
                 "forecast_date": args.date.isoformat(),
                 "batches": batches(args.fixture),
                 "results": [],
@@ -60,7 +65,10 @@ def main() -> None:
             if not state.values:
                 raise SystemExit("Unknown run ID.")
             run_input = None
+            if not complete and (not state.next or "forecast" in state.next):
+                # The earlier graph used a different pending node. Keep its committed batches.
+                run_input = {**state.values, "messages": []}
         result = state.values
-        if run_input or state.next:
-            result = graph.invoke(run_input, config, durability="sync")
+        if not complete:
+            result = agent.invoke(run_input, config, durability="sync")
         write_report(args.output, result["results"])
