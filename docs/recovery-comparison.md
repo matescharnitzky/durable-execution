@@ -2,7 +2,7 @@
 
 The fixtures cover the same two cities. LangGraph sends one report request and the endpoint sees two attempts at that request for every fault. DBOS, Temporal, and Pi let batch A finish before injecting a fault on batch B. Their endpoint sees **A, B, B**, with batch A reused. All four runtimes complete the original logical run and render HTML.
 
-| Runtime | Worker killed during B | HTTP 429 and lost response | Native evidence |
+| Runtime | Worker killed during a model request | HTTP 429 and lost response | Native evidence |
 |---|---|---|---|
 | LangGraph | Resume the original PostgreSQL thread and rerun the pending model call for the full report | The OpenAI client retries the full request within the same process | Final assistant response in the checkpoint and no pending node |
 | Pydantic AI + DBOS | Launch against the same system database and wait on the original workflow | DBOS retries the model step | Workflow status SUCCESS and two recorded model steps |
