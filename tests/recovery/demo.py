@@ -14,7 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 FIXTURE_DATE = "2027-01-15"
-FIXTURE = Path(__file__).resolve().parents[2] / "shared/src/weather_report/fixtures/report.json"
+FIXTURE = Path(__file__).resolve().parents[2] / "core/src/weather_core/fixtures/report.json"
 
 
 def scenario(command: list[str], fault: str, worker: list[str] | None) -> dict:
@@ -30,8 +30,13 @@ def scenario(command: list[str], fault: str, worker: list[str] | None) -> dict:
         def do_POST(self):
             assert self.path == "/v1/responses", self.path
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            assert body["tools"] == [{"type": "web_search"}]
-            forecast = json.loads(body["input"])
+            assert any(tool["type"] in ("web_search", "web_search_preview") for tool in body["tools"])
+            request_input = body["input"]
+            if isinstance(request_input, list):
+                request_input = next(item["content"] for item in request_input if item.get("role") == "user")
+            if isinstance(request_input, list):
+                request_input = next(part["text"] for part in request_input if part["type"] == "input_text")
+            forecast = json.loads(request_input)
             assert forecast["forecast_date"] == FIXTURE_DATE
             city, = forecast["cities"]
             city_number = next(i for i, row in enumerate(report["forecasts"]) if row["city"] == city)
@@ -54,10 +59,29 @@ def scenario(command: list[str], fault: str, worker: list[str] | None) -> dict:
             if disposition == "response-lost":
                 self.connection.shutdown(socket.SHUT_RDWR)
                 return
-            response = {"output": [{"type": "message", "content": [
-                {"type": "output_text", "text": json.dumps(result)}
-            ]}]}
+            response = {
+                "id": f"resp_fixture_{city_number}_{attempt}",
+                "object": "response",
+                "created_at": 1_800_000_000,
+                "model": body["model"],
+                "status": "completed",
+                "parallel_tool_calls": False,
+                "tool_choice": "auto",
+                "tools": body["tools"],
+                "usage": {"input_tokens": 100, "output_tokens": 100, "total_tokens": 200,
+                          "input_tokens_details": {"cached_tokens": 0},
+                          "output_tokens_details": {"reasoning_tokens": 0}},
+                "output": [
+                    {"id": "ws_fixture", "type": "web_search_call", "status": "completed",
+                     "action": {"type": "search", "query": f"forecast for {city}"}},
+                    {"id": "msg_fixture", "type": "message", "role": "assistant", "status": "completed",
+                     "content": [{"type": "output_text", "text": json.dumps(result), "annotations": []}]},
+                ],
+            }
+            if status == 429:
+                response = {"error": {"message": "Fixture rate limit", "type": "rate_limit_error"}}
             self.send_response(status)
+            self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(response).encode())
 

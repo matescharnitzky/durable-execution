@@ -4,7 +4,7 @@ from importlib.resources import files
 
 from jsonschema import Draft202012Validator
 
-FIXTURES = files("weather_report").joinpath("fixtures")
+FIXTURES = files("weather_core").joinpath("fixtures")
 
 
 class ReportContractTest(unittest.TestCase):

@@ -5,4 +5,4 @@ setup:
 	npm ci --ignore-scripts
 
 check:
-	uv run --locked --package weather-report python -m unittest discover -s shared/tests
+	uv run --locked --package weather-core python -m unittest discover -s core/tests
