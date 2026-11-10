@@ -2,14 +2,14 @@
 name = "temporal-report"
 version = "0.1.0"
 requires-python = ">=3.13,<3.14"
-dependencies = ["pydantic-report", "pydantic-ai-slim[temporal]>=2.66,<3"]
+dependencies = ["weather-core", "pydantic-ai-slim[openai,temporal]>=2.66,<3", "openai>=3.31,<4", "logfire>=5,<6"]
 
 [project.scripts]
 temporal-report = "temporal_report.cli:main"
 temporal-report-worker = "temporal_report.cli:worker"
 
 [tool.uv.sources]
-pydantic-report = { workspace = true }
+weather-core = { workspace = true }
 
 [build-system]
 requires = ["uv_build==0.9.30"]

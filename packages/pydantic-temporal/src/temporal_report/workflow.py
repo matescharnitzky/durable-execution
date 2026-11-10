@@ -7,9 +7,9 @@ from temporalio.common import RetryPolicy
 with workflow.unsafe.imports_passed_through():
     from pydantic_ai.durable_exec.temporal import PydanticAIWorkflow, TemporalDurability
 
-    from pydantic_report.agent import forecast_batches, report_agent
+    from temporal_report.agent import forecast_batches, report_agent
 
-    agent = report_agent("temporal", TemporalDurability(model_activity_config={
+    agent = report_agent(TemporalDurability(model_activity_config={
         "start_to_close_timeout": timedelta(seconds=10 if os.getenv("DURABLE_FIXTURE") == "1" else 100),
         "retry_policy": RetryPolicy(
             initial_interval=timedelta(seconds=1),
