@@ -3,7 +3,8 @@ import json
 from datetime import date
 from pathlib import Path
 
-from langgraph_report.config import Settings, configure_telemetry
+from langgraph_report.config import Settings
+from langgraph_report.observability import configure_telemetry
 from langgraph_report.report import batches, write_report
 
 
