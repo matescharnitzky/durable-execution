@@ -3,9 +3,10 @@ name = "langgraph-report"
 version = "0.1.0"
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "weather-report",
-    "langchain-core>=1.7,<2",
-    "langsmith>=0.14.17,<1",
+    "weather-core",
+    "langchain-openai>=1,<2",
+    "logfire>=5,<6",
+    "openai>=2,<3",
     "langgraph>=1.0,<2",
     "langgraph-checkpoint-postgres>=3,<4",
     "psycopg[binary]>=3,<4",
@@ -15,7 +16,7 @@ dependencies = [
 langgraph-report = "langgraph_report.cli:main"
 
 [tool.uv.sources]
-weather-report = { workspace = true }
+weather-core = { workspace = true }
 
 [build-system]
 requires = ["uv_build==0.9.30"]

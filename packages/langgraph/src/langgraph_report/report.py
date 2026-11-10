@@ -10,7 +10,7 @@ from tempfile import NamedTemporaryFile
 
 from jsonschema import Draft202012Validator
 
-FIXTURES = files("weather_report").joinpath("fixtures")
+FIXTURES = files("weather_core").joinpath("fixtures")
 VALIDATOR = Draft202012Validator(
     json.loads(FIXTURES.joinpath("report.schema.json").read_text(encoding="utf-8")),
     format_checker=Draft202012Validator.FORMAT_CHECKER,
