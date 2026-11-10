@@ -128,4 +128,3 @@ For standalone issues, use the appropriate `[Feature]:`, `[Bug]:`, or `[Task]:` 
 - After publication, read the issue back to verify the description, section order, related links, and single attribution footer were saved correctly. Verify requested labels separately. When the user authorizes removing native blocking links, confirm their removal without adding dependency rows to Related issues.
 - Verify native sub-issues as well as body links: each feature has the intended parent, and the parent lists the expected features. Keep native blocking links separate from this hierarchy. Remove temporary draft files after successful verification.
 - Report the issue URL and a short description of the change. If publication fails, keep the prepared draft and state the concrete blocker rather than claiming success.
-
