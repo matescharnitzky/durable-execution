@@ -11,7 +11,7 @@ The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_UR
 
 Run the credential-free demo with `uv run --locked python tests/recovery/demo.py .venv/bin/langgraph-report --single-request`. Each scenario makes two attempts at the full report. After a worker kill, `resume` uses the original PostgreSQL thread ID and reruns the pending model call. For a one-time 429 or a dropped connection, the OpenAI client retries within the same process. `status` shows the pending checkpoint nodes.
 
-`graph.py` configures LangChain’s `create_agent` with the shared system prompt, PostgreSQL checkpointer, and the OpenAI web-search tool from `tools.py`. `config.py` loads the model, database URL, and credentials from the environment. Use a fresh run ID for this setup if you previously ran the batched demo.
+`agent.py` configures LangChain’s `create_agent` with the shared system prompt, PostgreSQL checkpointer, and the OpenAI web-search tool from `tools.py`. `config.py` loads the model, database URL, and credentials from the environment. Use a fresh run ID for this setup if you previously ran the batched demo.
 
 ## Observe a run
 
