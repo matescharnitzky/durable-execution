@@ -22,4 +22,4 @@ docker compose exec -T postgres createdb -U weather weather_dbos
 make recovery
 ```
 
-Each demo prints the logical run ID, request attempts, and native status. For individual runs or manual recovery commands, see the [README](../README.md). The fixture results measure recovery against a local endpoint. Live forecast quality and export to a real Logfire project require the provider credentials.
+Each demo prints the logical run ID, request attempts, and native status. For individual runs or manual recovery commands, see the [runtime READMEs](../README.md#runtimes). The fixture results measure recovery against a local endpoint. Live forecast quality and export to a real Logfire project require the provider credentials.
