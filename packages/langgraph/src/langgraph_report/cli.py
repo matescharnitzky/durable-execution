@@ -30,7 +30,7 @@ def main() -> None:
     from langchain_core.messages import AIMessage, HumanMessage
     from langgraph.checkpoint.postgres import PostgresSaver
 
-    from langgraph_report.graph import build_agent
+    from langgraph_report.agent import build_agent
 
     with PostgresSaver.from_conn_string(settings.database_url) as saver:
         saver.setup()

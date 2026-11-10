@@ -4,7 +4,8 @@ from langchain_openai import ChatOpenAI
 
 from langgraph_report.config import Settings
 
-WEB_SEARCH = {"type": "web_search"}
+# Passed to the Responses API, which runs the search on OpenAI’s servers.
+OPENAI_WEB_SEARCH = {"type": "web_search"}
 
 
 def forecast_model(settings: Settings) -> ChatOpenAI:
