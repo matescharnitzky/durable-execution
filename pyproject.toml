@@ -1,2 +1,2 @@
 [tool.uv.workspace]
-members = ["core", "packages/langgraph", "packages/pydantic-agent", "packages/pydantic-dbos"]
+members = ["core", "packages/langgraph", "packages/pydantic-dbos"]

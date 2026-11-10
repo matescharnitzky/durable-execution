@@ -1,4 +1,4 @@
-"""Weather agent shared by the two Pydantic AI durability backends."""
+"""Weather agent for the DBOS workflow."""
 
 import json
 import os
@@ -10,7 +10,7 @@ from pydantic_ai.models.instrumented import InstrumentationSettings
 from pydantic_ai.models.openai import OpenAIResponsesModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
-from pydantic_report.report import FIXTURES, validate_batch
+from dbos_report.report import FIXTURES, validate_batch
 
 SEARCH = json.loads(FIXTURES.joinpath("search.json").read_text(encoding="utf-8"))
 
@@ -19,7 +19,7 @@ async def api_key() -> str:
     return os.environ["OPENAI_API_KEY"]
 
 
-def report_agent(runtime, durability):
+def report_agent(durability):
     client = AsyncOpenAI(api_key=api_key, max_retries=0, timeout=90)
     model = OpenAIResponsesModel(
         os.getenv("OPENAI_MODEL") or SEARCH["model"],
@@ -27,7 +27,7 @@ def report_agent(runtime, durability):
     )
     return Agent(
         model,
-        name=f"{runtime}_weather",
+        name="dbos_weather",
         instructions=SEARCH["instructions"],
         capabilities=[
             NativeTool(WebSearchTool()),
