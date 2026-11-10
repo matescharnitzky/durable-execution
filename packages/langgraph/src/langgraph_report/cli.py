@@ -1,25 +1,17 @@
-import argparse
 import json
-from datetime import date
-from pathlib import Path
+import sys
+
+from langchain.agents import create_agent
+from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.checkpoint.postgres import PostgresSaver
+
+from langgraph_report.arguments import arguments
 
 from langgraph_report.config import Settings
 from langgraph_report.observability import configure_telemetry
+from langgraph_report.prompts import load_search_config
 from langgraph_report.report import report_cities, validate_report, write_report
-
-
-def arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="langgraph-report")
-    commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("run", "status", "resume"):
-        command = commands.add_parser(name)
-        command.add_argument("run_id")
-        if name != "status":
-            command.add_argument("--output", type=Path, required=True)
-        if name == "run":
-            command.add_argument("--date", type=date.fromisoformat, required=True)
-            command.add_argument("--fixture", action="store_true", help="Use the two fixture cities")
-    return parser.parse_args()
+from langgraph_report.tools import forecast_model, web_search_tool
 
 
 def main() -> None:
@@ -27,14 +19,19 @@ def main() -> None:
     settings = Settings()
     configure_telemetry(settings)
 
-    from langchain_core.messages import AIMessage, HumanMessage
-    from langgraph.checkpoint.postgres import PostgresSaver
-
-    from langgraph_report.agent import build_agent
-
     with PostgresSaver.from_conn_string(settings.database_url) as saver:
         saver.setup()
-        agent = build_agent(saver, settings)
+        model = forecast_model(settings)
+        agent = create_agent(
+            model=model,
+            tools=[web_search_tool(model)],
+            system_prompt=(
+                "Call web_search to collect forecasts and source URLs before writing the report. "
+                + load_search_config().instructions
+            ),
+            checkpointer=saver,
+            name="Weather report",
+        )
         config = {
             "configurable": {"thread_id": args.run_id},
             "metadata": {
@@ -69,3 +66,4 @@ def main() -> None:
         answer = messages[-1].text.strip().removeprefix("```json").removesuffix("```").strip()
         report = validate_report(json.loads(answer), request["forecast_date"], request["cities"])
         write_report(args.output, [report])
+        print(f"Report saved to {args.output.resolve()}", file=sys.stderr)

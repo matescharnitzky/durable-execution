@@ -1,10 +1,12 @@
 import os
 
+import logfire
+
 from langgraph_report.config import Settings
 
 
 def configure_telemetry(settings: Settings) -> None:
-    # Logfire's LangGraph integration reads these before framework imports.
+    # Set tracing options before LangSmith creates its client on the first run.
     os.environ.pop("LANGSMITH_TRACING_MODE", None)
     os.environ.update(
         LANGSMITH_TRACING="true",
@@ -13,8 +15,6 @@ def configure_telemetry(settings: Settings) -> None:
         LANGSMITH_HIDE_INPUTS="true",
         LANGSMITH_HIDE_OUTPUTS="true",
     )
-
-    import logfire
 
     logfire.configure(
         service_name="langgraph-report",
