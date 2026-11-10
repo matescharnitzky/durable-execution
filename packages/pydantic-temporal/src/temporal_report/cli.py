@@ -12,7 +12,7 @@ from temporalio.worker import ActivityInboundInterceptor, Interceptor, Worker
 
 from temporal_report.workflow import WeatherReport
 
-from pydantic_report.report import arguments, batches, write_report
+from temporal_report.report import arguments, batches, write_report
 
 TASK_QUEUE = "durable-weather"
 

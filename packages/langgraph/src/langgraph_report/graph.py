@@ -8,7 +8,7 @@ from openai import APIConnectionError, InternalServerError, RateLimitError
 
 from langgraph_report.config import SEARCH, Settings
 from langgraph_report.report import validate_batch
-from langgraph_report.tool import WEB_SEARCH, forecast_model
+from langgraph_report.tools import WEB_SEARCH, forecast_model
 
 
 class ReportState(AgentState):
@@ -18,6 +18,8 @@ class ReportState(AgentState):
 
 
 class ForecastBatches(AgentMiddleware):
+    """Give each batch its own checkpointed turn within the same agent run."""
+
     def wrap_model_call(self, request, handler):
         state = request.state
         cities = state["batches"][len(state["results"])]

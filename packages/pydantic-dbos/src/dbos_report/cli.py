@@ -5,9 +5,9 @@ import logfire
 from dbos import DBOS, DBOSClient, SetWorkflowID
 from pydantic_ai.durable_exec.dbos import DBOSDurability
 
-from pydantic_report.agent import forecast_batches, report_agent
+from dbos_report.agent import forecast_batches, report_agent
 
-from pydantic_report.report import arguments, batches, write_report
+from dbos_report.report import arguments, batches, write_report
 
 
 def main():
@@ -33,7 +33,7 @@ def main():
         return
 
     DBOS(config={"name": "weather-report", "system_database_url": database})
-    agent = report_agent("dbos", DBOSDurability(model_step_config={
+    agent = report_agent(DBOSDurability(model_step_config={
         "retries_allowed": True, "max_attempts": 3, "interval_seconds": 1.0,
     }))
 
