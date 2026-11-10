@@ -1,12 +1,7 @@
-import json
-from importlib.resources import files
-
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-SEARCH = json.loads(
-    files("weather_core").joinpath("fixtures", "search.json").read_text(encoding="utf-8")
-)
+from langgraph_report.prompts import load_search_config
 
 
 class Settings(BaseSettings):
@@ -16,6 +11,6 @@ class Settings(BaseSettings):
         default="postgresql://weather:weather-local@127.0.0.1:55432/weather",
         validation_alias="LANGGRAPH_DATABASE_URL",
     )
-    openai_model: str = SEARCH["model"]
+    openai_model: str = Field(default_factory=lambda: load_search_config().model)
     openai_api_key: SecretStr | None = None
     logfire_token: SecretStr | None = None
