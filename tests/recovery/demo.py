@@ -17,10 +17,10 @@ FIXTURE_DATE = "2027-01-15"
 FIXTURE = Path(__file__).resolve().parents[2] / "core/src/weather_core/fixtures/report.json"
 
 
-def scenario(command: list[str], fault: str, worker: list[str] | None) -> dict:
+def scenario(command: list[str], fault: str, worker: list[str] | None, single_request: bool = False) -> dict:
     report = json.loads(FIXTURE.read_text())
     requests = []
-    batch_b = threading.Event()
+    request_held = threading.Event()
     release = threading.Event()
 
     class Endpoint(BaseHTTPRequestHandler):
@@ -38,29 +38,38 @@ def scenario(command: list[str], fault: str, worker: list[str] | None) -> dict:
                 request_input = next(part["text"] for part in request_input if part["type"] == "input_text")
             forecast = json.loads(request_input)
             assert forecast["forecast_date"] == FIXTURE_DATE
-            city, = forecast["cities"]
-            city_number = next(i for i, row in enumerate(report["forecasts"]) if row["city"] == city)
-            attempt = 1 + sum(req["batch"] == city_number + 1 for req in requests)
+            cities = forecast["cities"]
+            if single_request:
+                assert cities == [row["city"] for row in report["forecasts"]]
+                request_key, request_number = "report", 1
+                result = report
+            else:
+                city, = cities
+                request_key = "batch"
+                request_number, = (
+                    i for i, row in enumerate(report["forecasts"], start=1) if row["city"] == city
+                )
+                result = {**report, "forecasts": [report["forecasts"][request_number - 1]]}
+            attempt = 1 + sum(req[request_key] == request_number for req in requests)
             status = 200
             disposition = "returned"
-            if city_number == 1 and attempt == 1:
+            if (single_request or request_number == 2) and attempt == 1:
                 if fault == "crash":
                     disposition = "held"
                 elif fault == "rate-limit":
                     disposition, status = "429", 429
                 else:
                     disposition = "response-lost"
-            requests.append({"batch": city_number + 1, "attempt": attempt, "outcome": disposition})
+            requests.append({request_key: request_number, "attempt": attempt, "outcome": disposition})
             if disposition == "held":
-                batch_b.set()
+                request_held.set()
                 release.wait(120)
                 return
-            result = {**report, "forecasts": [report["forecasts"][city_number]]}
             if disposition == "response-lost":
                 self.connection.shutdown(socket.SHUT_RDWR)
                 return
             response = {
-                "id": f"resp_fixture_{city_number}_{attempt}",
+                "id": f"resp_fixture_{request_number}_{attempt}",
                 "object": "response",
                 "created_at": 1_800_000_000,
                 "model": body["model"],
@@ -73,7 +82,7 @@ def scenario(command: list[str], fault: str, worker: list[str] | None) -> dict:
                           "output_tokens_details": {"reasoning_tokens": 0}},
                 "output": [
                     {"id": "ws_fixture", "type": "web_search_call", "status": "completed",
-                     "action": {"type": "search", "query": f"forecast for {city}"}},
+                     "action": {"type": "search", "query": f"forecast for {', '.join(cities)}"}},
                     {"id": "msg_fixture", "type": "message", "role": "assistant", "status": "completed",
                      "content": [{"type": "output_text", "text": json.dumps(result), "annotations": []}]},
                 ],
@@ -110,8 +119,8 @@ def scenario(command: list[str], fault: str, worker: list[str] | None) -> dict:
             args = ["run", run_id, "--date", FIXTURE_DATE, "--fixture", "--output", str(output)]
             process = subprocess.Popen([*command, *args], env=env, stdout=sys.stderr)
             if fault == "crash":
-                if not batch_b.wait(90):
-                    raise RuntimeError(f"Worker did not reach batch B (runner exit {process.poll()})")
+                if not request_held.wait(90):
+                    raise RuntimeError(f"Worker did not reach the held request (runner exit {process.poll()})")
                 stop(worker_process or process)
                 stop(process)
                 release.set()
@@ -128,7 +137,8 @@ def scenario(command: list[str], fault: str, worker: list[str] | None) -> dict:
                 assert forecast["city"] in html and forecast["sources"][0]["url"] in html
             status = subprocess.check_output([*command, "status", run_id], env=env, timeout=30, text=True)
             assert json.loads(status)["state"] == "complete", status
-            assert [req["batch"] for req in requests] == [1, 2, 2], requests
+            key, expected = ("report", [1, 1]) if single_request else ("batch", [1, 2, 2])
+            assert [req[key] for req in requests] == expected, requests
             return {"scenario": fault, "run_id": run_id, "requests": requests, "native_status": json.loads(status)}
     finally:
         stop(process)
@@ -142,12 +152,14 @@ def scenario(command: list[str], fault: str, worker: list[str] | None) -> dict:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("cli", help="Runtime CLI command, including any wrapper")
+    parser.add_argument("--single-request", action="store_true", help="Send both cities in one report request")
     parser.add_argument("--worker", help="Separate worker command, if needed")
     parser.add_argument("--scenario", choices=("crash", "rate-limit", "lost-response"))
     args = parser.parse_args()
     faults = [args.scenario] if args.scenario else ["crash", "rate-limit", "lost-response"]
     for fault in faults:
-        print(json.dumps(scenario(shlex.split(args.cli), fault, shlex.split(args.worker) if args.worker else None)))
+        worker = shlex.split(args.worker) if args.worker else None
+        print(json.dumps(scenario(shlex.split(args.cli), fault, worker, args.single_request)))
 
 
 if __name__ == "__main__":

@@ -15,12 +15,12 @@ VALIDATOR = Draft202012Validator(
 )
 
 
-def batches(fixture: bool) -> list[list[str]]:
+def report_cities(fixture: bool) -> list[str]:
     cities = json.loads(FIXTURES.joinpath("cities.json").read_text(encoding="utf-8"))
-    return [[city] for city in cities[0][:2]] if fixture else cities
+    return cities[0][:2] if fixture else [city for batch in cities for city in batch]
 
 
-def validate_batch(result: dict, forecast_date: str, cities: list[str]) -> dict:
+def validate_report(result: dict, forecast_date: str, cities: list[str]) -> dict:
     VALIDATOR.validate(result)
     if result["forecast_date"] != forecast_date:
         raise ValueError("Forecast date does not match the request")
