@@ -1,2 +1,2 @@
 [tool.uv.workspace]
-members = ["shared"]
+members = ["shared", "packages/langgraph"]

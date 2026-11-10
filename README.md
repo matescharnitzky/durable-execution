@@ -23,10 +23,23 @@ The runtime integrations will call OpenAI Responses with hosted web search for l
 
 ## Local runtime configuration
 
-The runtime PRs add the CLI and Compose services. LangGraph and DBOS use local PostgreSQL, with separate databases for their runtime state. Temporal uses a local server, and Pi Durable uses a local SQLite file. pgAdmin can be used to inspect PostgreSQL.
+The CLI uses local Compose services where needed. LangGraph and DBOS use local PostgreSQL, with separate databases for their runtime state. Temporal uses a local server, and Pi Durable uses a local SQLite file. pgAdmin can be used to inspect PostgreSQL.
 
 For live runs, copy `.env.example` to the ignored `.env`. Replace each placeholder with the corresponding `op://` field reference from the `durable-execution` item in the 1Password Development vault. Use **Copy Secret Reference** in 1Password to get the exact field names. Run the relevant adapter command through `op run --env-file=.env -- <command>` to inject the resolved values only into that process. The OpenAI key covers both model calls and hosted web search.
 
 ## Telemetry
 
 Runtime integrations send to Logfire when `LOGFIRE_TOKEN` is configured. Use native framework instrumentation where available and OpenTelemetry for Pi Durable. Correlate model calls, tool calls, and recovery events using `durable.runtime` and `durable.run_id`. Add `durable.batch` and `durable.attempt` where the runtime exposes them. Preserve the logical run ID across restarts even when traces differ. Keep credentials and raw prompts and responses out of telemetry by default. Native runtime history and the fixture request log are the recovery evidence.
+
+## LangGraph with PostgreSQL
+
+```sh
+docker compose up -d --wait postgres
+uv run --locked langgraph-report run report-1 --date YYYY-MM-DD --output artifacts/report.html
+uv run --locked langgraph-report status report-1
+uv run --locked langgraph-report resume report-1 --output artifacts/report.html
+```
+
+The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_URL` if using different database settings. The `pgadmin` Compose profile exposes pgAdmin on port 55080. Wrap live CLI commands with the 1Password invocation above.
+
+Run the credential-free recovery demo with `uv run --locked python tests/recovery/demo.py .venv/bin/langgraph-report`. In all three scenarios, the observed batch order was A, B, B and the original run produced a report. After worker death, `resume` loaded the PostgreSQL checkpoint with A already present. The graph's node retry policy handled the 429 and dropped response without a restart. `status` reports the number of completed batches and the next checkpointed node. Use that with the demo's independent request log.

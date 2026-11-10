@@ -1,0 +1,20 @@
+[project]
+name = "langgraph-report"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "weather-report",
+    "langgraph>=1.0,<2",
+    "langgraph-checkpoint-postgres>=3,<4",
+    "psycopg[binary]>=3,<4",
+]
+
+[project.scripts]
+langgraph-report = "langgraph_report.cli:main"
+
+[tool.uv.sources]
+weather-report = { workspace = true }
+
+[build-system]
+requires = ["uv_build==0.9.30"]
+build-backend = "uv_build"
