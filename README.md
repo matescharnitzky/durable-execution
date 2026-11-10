@@ -17,7 +17,7 @@ For Codex Cloud, create an environment for `matescharnitzky/durable-execution` u
 
 ## Report contract
 
-The JSON files under [core fixtures](core/src/weather_core/fixtures) are shared by Python and TypeScript. The live workload takes an explicit ISO date and uses four batches of five cities. Each forecast includes the city, low and high temperatures in Celsius, conditions, and clickable source links. Render a single HTML report with the forecast date, summary, and one forecast per requested city in input order. Escape forecast text and citation labels before rendering.
+The JSON files under [core fixtures](core/src/weather_core/fixtures) are shared by Python and TypeScript. The live workload takes an explicit ISO date and covers 20 cities. LangGraph sends all cities in one request. DBOS, Temporal, and Pi use four batches of five. Each forecast includes the city, low and high temperatures in Celsius, conditions, and clickable source links. Render a single HTML report with the forecast date, summary, and one forecast per requested city in input order. Escape forecast text and citation labels before rendering.
 
 The runtime integrations use their own OpenAI clients to call Responses with hosted web search for live forecasts. The runtime owns persistence for unfinished work. The fault-injection endpoint's request log serves as evidence alongside native runtime history.
 
