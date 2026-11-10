@@ -1,15 +1,15 @@
 # Recovery comparison
 
-The fixtures cover the same two cities. LangGraph sends one report request and the endpoint sees two attempts at that request for every fault. DBOS, Temporal, and Pi let batch A finish before injecting a fault on batch B. Their endpoint sees **A, B, B**, with batch A reused. All four runtimes complete the original logical run and render HTML.
+The fixtures cover the same two cities. LangGraph calls a web search tool and then generates the report. The endpoint records one planning request, one search request, and two attempts at the final answer. DBOS, Temporal, and Pi let batch A finish before injecting a fault on batch B. Their endpoint sees **A, B, B**, with batch A reused. All four runtimes complete the original logical run and render HTML.
 
 | Runtime | Worker killed during a model request | HTTP 429 and lost response | Native evidence |
 |---|---|---|---|
-| LangGraph | Resume the original PostgreSQL thread and rerun the pending model call for the full report | The OpenAI client retries the full request within the same process | Final assistant response in the checkpoint and no pending node |
+| LangGraph | Resume the original PostgreSQL thread, reuse the saved search result, and rerun the final model call | The OpenAI client retries the final model call within the same process | Search result available to the resumed model call, with only the model node pending after the crash |
 | Pydantic AI + DBOS | Launch against the same system database and wait on the original workflow | DBOS retries the model step | Workflow status SUCCESS and two recorded model steps |
 | Pydantic AI + Temporal | Replace the worker and follow the existing workflow. The server times out and reassigns the activity | Temporal retries the activity | Workflow status COMPLETED. The activity for A settled on attempt 1 and the activity for B on attempt 2 |
 | Pi Durable | Reopen the same SQLite store and resume the pending generation. Stable request IDs find the original submissions | The harness retries the generation | Two successful assistant turns. In the transport-failure runs, the B task also recorded an error turn |
 
-The hosted search actions inside a Responses call are part of that call. The runtimes recovered at their own boundaries: the single checkpointed agent model call, DBOS step, Temporal activity, or Pi generation. If the endpoint finished a request but the worker never got the response, the worker issued the request again. The external request log shows this even when native history shows only the successful completion.
+The hosted search actions inside a Responses call are part of that call. The runtimes recovered at their own boundaries: the checkpointed search tool result, DBOS step, Temporal activity, or Pi generation. If the endpoint finished a request but the worker never got the response, the worker issued the request again. The external request log shows this even when native history shows only the successful completion.
 
 ## Reproduce
 
