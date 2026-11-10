@@ -4,12 +4,12 @@ The fixture uses two one-city batches. It lets A return, then injects a failure 
 
 | Runtime | Worker killed during B | HTTP 429 and lost response | Native evidence |
 |---|---|---|---|
-| LangGraph | Reinvoke with no new input and the original PostgreSQL thread ID | The graph node retry policy retries B | Two completed batches and no next node in the final checkpoint |
+| LangGraph | Reinvoke with no new input and the original PostgreSQL thread ID | LangChain’s model retry middleware retries B | Two completed batches and no next node in the final checkpoint |
 | Pydantic AI + DBOS | Launch against the same system database and wait on the original workflow | DBOS retries the model step | Workflow status SUCCESS and two recorded model steps |
 | Pydantic AI + Temporal | Replace the worker and follow the existing workflow. The server times out and reassigns the activity | Temporal retries the activity | Workflow status COMPLETED. The activity for A settled on attempt 1 and the activity for B on attempt 2 |
 | Pi Durable | Reopen the same SQLite store and resume the pending generation. Stable request IDs find the original submissions | The harness retries the generation | Two successful assistant turns. In the transport-failure runs, the B task also recorded an error turn |
 
-The hosted search actions inside a Responses call are part of that call. The runtimes recovered at their own boundaries: the graph node, DBOS step, Temporal activity, or Pi generation. If the endpoint finished a request but the worker never got the response, the worker issued the request again. The external request log shows this even when native history shows only the successful completion.
+The hosted search actions inside a Responses call are part of that call. The runtimes recovered at their own boundaries: the checkpointed agent model turn, DBOS step, Temporal activity, or Pi generation. If the endpoint finished a request but the worker never got the response, the worker issued the request again. The external request log shows this even when native history shows only the successful completion.
 
 ## Reproduce
 
