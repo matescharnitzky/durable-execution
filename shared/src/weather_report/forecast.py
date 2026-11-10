@@ -7,7 +7,10 @@ from urllib.request import Request, urlopen
 
 import logfire
 
-from weather_report.report import validate_batch
+from weather_report.report import FIXTURES, validate_batch
+
+
+SEARCH = json.loads(FIXTURES.joinpath("search.json").read_text(encoding="utf-8"))
 
 
 class RetryableForecastError(Exception):
@@ -17,7 +20,7 @@ class RetryableForecastError(Exception):
 def configure_telemetry(runtime: str) -> None:
     logfire.configure(
         service_name=f"{runtime}-report",
-        send_to_logfire="if-token-present",
+        send_to_logfire=bool(os.getenv("LOGFIRE_TOKEN")),
         console=False,
     )
 
@@ -25,16 +28,10 @@ def configure_telemetry(runtime: str) -> None:
 def search_forecast(runtime: str, run_id: str, batch: int, forecast_date: str, cities: list[str]) -> dict:
     base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
     payload = {
-        "model": os.getenv("OPENAI_MODEL", "gpt-5.4-mini"),
+        "model": os.getenv("OPENAI_MODEL") or SEARCH["model"],
         "tools": [{"type": "web_search"}],
         "tool_choice": "required",
-        "instructions": (
-            "Find forecasts for the requested local calendar date and cities. "
-            "Return only a JSON object with forecast_date, summary, and forecasts. "
-            "Each forecast must include city, low_c, high_c, conditions, and sources "
-            "(objects with title and URL in the url field). Use exact input city names "
-            "in order, Celsius, and real forecast sources. Never invent data."
-        ),
+        "instructions": SEARCH["instructions"],
         "input": json.dumps({"forecast_date": forecast_date, "cities": cities}),
     }
     request = Request(

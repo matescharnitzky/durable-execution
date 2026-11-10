@@ -18,3 +18,8 @@ jobs:
           version: "0.13.5"
       - run: make setup
       - run: make check
+      - name: Start recovery services
+        run: |
+          docker compose up -d --wait postgres temporal
+          docker compose exec -T postgres createdb -U weather weather_dbos
+      - run: make recovery
