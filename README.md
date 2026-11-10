@@ -31,28 +31,7 @@ For live runs, copy `.env.example` to the ignored `.env`. Replace each placehold
 
 Runtime integrations send to Logfire when `LOGFIRE_TOKEN` is configured. Use native framework instrumentation where available and OpenTelemetry for Pi Durable. Correlate model calls, tool calls, and recovery events using `durable.runtime` and `durable.run_id`. Add `durable.batch` and `durable.attempt` where the runtime exposes them. Preserve the logical run ID across restarts even when traces differ. Keep credentials and raw prompts and responses out of telemetry by default. Native runtime history and the fixture request log are the recovery evidence.
 
-## LangGraph with PostgreSQL
+## Runtimes
 
-```sh
-docker compose up -d --wait postgres
-uv run --locked langgraph-report run report-1 --date YYYY-MM-DD --output artifacts/report.html
-uv run --locked langgraph-report status report-1
-uv run --locked langgraph-report resume report-1 --output artifacts/report.html
-```
-
-The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_URL` if using different database settings. The `pgadmin` Compose profile exposes pgAdmin on port 55080. Wrap live CLI commands with the 1Password invocation above.
-
-Run the credential-free recovery demo with `uv run --locked python tests/recovery/demo.py .venv/bin/langgraph-report`. In all three scenarios, the observed batch order was A, B, B and the original run produced a report. After worker death, `resume` loaded the PostgreSQL checkpoint with A already present. The graph's node retry policy handled the 429 and dropped response without a restart. `status` reports the number of completed batches and the next checkpointed node. Use that with the demo's independent request log.
-
-## Pydantic AI with DBOS
-
-Start PostgreSQL as above. On a fresh local volume, create the DBOS system database once with `docker compose exec -T postgres createdb -U weather weather_dbos`. Set `DBOS_SYSTEM_DATABASE_URL` to use another database.
-
-```sh
-uv run --locked dbos-report run report-2 --date YYYY-MM-DD --output artifacts/dbos.html
-uv run --locked dbos-report status report-2
-uv run --locked dbos-report resume report-2 --output artifacts/dbos.html
-uv run --locked python tests/recovery/demo.py .venv/bin/dbos-report
-```
-
-Each batch is one Pydantic AI model turn backed by the shared OpenAI Responses call. Hosted web search happens inside that turn. The DBOS integration records the turn as a model step. After worker death, DBOS launch recovered the original workflow and reused A. DBOS step retries handled both the 429 and lost response. The fixture recorded A, B, B in all three scenarios. The status command reads DBOS workflow and step metadata without starting a worker.
+- [LangGraph with PostgreSQL](packages/langgraph/README.md)
+- [Pydantic AI with DBOS](packages/pydantic-dbos/README.md)
