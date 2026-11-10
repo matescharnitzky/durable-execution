@@ -1,0 +1,5 @@
+{
+  "name": "@durable-execution/pi-durable",
+  "private": true,
+  "type": "module"
+}
