@@ -11,7 +11,7 @@ The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_UR
 
 Run the credential-free recovery demo with `uv run --locked python tests/recovery/demo.py .venv/bin/langgraph-report`. In all three scenarios, the observed batch order was A, B, B and the original run produced a report. After worker death, `resume` loaded the PostgreSQL checkpoint with A already present. LangChain’s model retry middleware handled the 429 and dropped response without a restart. `status` reports the number of completed batches and the next checkpointed node. Use that with the demo's independent request log.
 
-`graph.py` configures LangChain’s `create_agent` with the report state, shared system prompt, PostgreSQL checkpointer, and the OpenAI web-search tool from `tools.py`. The middleware submits one batch per model turn and records each validated result in agent state before starting the next batch. This gives PostgreSQL a checkpoint between batches. A single model request for the whole report would leave no completed batch to reuse if that request were interrupted. `config.py` loads the model, database URL, and credentials from the environment.
+`graph.py` configures LangChain’s `create_agent` with the report state, shared system prompt, PostgreSQL checkpointer, and the OpenAI web-search tool from `tools.py`. `config.py` loads the model, database URL, and credentials from the environment.
 
 ## Observe a run
 
