@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 from dbos import DBOS, SetWorkflowID
 from pydantic_ai import Agent, NativeOutput, StructuredDict
 from pydantic_ai.durable_exec.dbos import DBOSDurability
-from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart, ToolReturnPart
+from pydantic_ai.messages import Citation, ModelResponse, TextPart, ToolCallPart, ToolReturnPart, WebCitationSource
 from pydantic_ai.models.function import FunctionModel
 
 from dbos_report.agent import agent as weather_agent, report
@@ -27,7 +27,8 @@ async def model(messages, info):
     results = [part for message in messages for part in message.parts if isinstance(part, ToolReturnPart)]
     if not results:
         return ModelResponse(parts=[ToolCallPart("web_search", {"query": "tomorrow Budapest"}, tool_call_id="search-1")])
-    assert results[0].content == "Saved forecast and source URL"
+    assert results[0].content["answer"] == "Saved forecast"
+    assert results[0].content["sources"][0].url == "https://example.com/forecast"
     if phase == "block":
         print("MODEL_WAITING_AFTER_SAVED_SEARCH", flush=True)
         await asyncio.Event().wait()
@@ -40,7 +41,12 @@ test_agent = Agent(
     output_type=NativeOutput(StructuredDict(REPORT_SCHEMA), strict=True),
     capabilities=[DBOSDurability()],
 )
-search = AsyncMock(return_value=SimpleNamespace(output="Saved forecast and source URL"))
+search = AsyncMock(return_value=SimpleNamespace(
+    output="Saved forecast",
+    response=ModelResponse(parts=[TextPart("Saved forecast", citations=[
+        Citation(sources=[WebCitationSource(url="https://example.com/forecast", title="Test source")]),
+    ])]),
+))
 if phase == "resume":
     search.side_effect = AssertionError("A completed web_search step was executed again")
 
