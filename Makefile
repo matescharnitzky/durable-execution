@@ -6,7 +6,6 @@ setup:
 
 check:
 	uv run --locked --package weather-core python -m unittest discover -s core/tests
-	uv run --locked --package langgraph-report python -m unittest discover -s packages/langgraph/tests
 
 UV_ENV_FILE := $(if $(wildcard .env),--env-file .env)
 

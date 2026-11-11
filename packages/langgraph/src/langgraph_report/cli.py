@@ -11,9 +11,9 @@ from langgraph.checkpoint.postgres import PostgresSaver
 
 from langgraph_report.config import Settings
 from langgraph_report.observability import configure_telemetry
-from langgraph_report.report import validate_report, write_report
 from langgraph_report.tools import web_search
 from weather_core.prompts import SYSTEM_PROMPT
+from weather_core.report import validate_report, write_report
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
@@ -44,7 +44,7 @@ def report_agent(run_id: str, command: str):
 def save_report(output: Path | None, messages) -> None:
     answer = messages[-1].text.strip().removeprefix("```json").removesuffix("```").strip()
     report = validate_report(json.loads(answer))
-    path = write_report(output, report)
+    path = write_report(output, report, experiment="LangGraph")
     typer.echo(f"Report saved to {path.resolve()}", err=True)
 
 

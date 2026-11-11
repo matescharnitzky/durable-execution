@@ -1,4 +1,4 @@
-"""Forecast validation and HTML output for the LangGraph adapter."""
+"""Shared forecast validation and HTML report exports."""
 
 import json
 from datetime import date, datetime, timezone
@@ -25,10 +25,10 @@ def validate_report(result: dict) -> dict:
     return result
 
 
-def write_report(path: Path | None, report: dict) -> Path:
+def write_report(path: Path | None, report: dict, *, experiment: str) -> Path:
     generated = datetime.now(timezone.utc)
     if path is None:
-        path = Path("artifacts") / f"report_langgraph_{generated:%Y%m%d_%H%M%S_%f}Z.html"
+        path = Path("artifacts") / f"report_{experiment.lower()}_{generated:%Y%m%d_%H%M%S_%f}Z.html"
     forecasts = report["forecasts"]
     rows = []
     for row in forecasts:
@@ -47,8 +47,9 @@ def write_report(path: Path | None, report: dict) -> Path:
             f'<td class="sources">{sources}</td></tr>'
         )
     forecast_date = date.fromisoformat(report["forecast_date"])
-    template = Template(files("langgraph_report").joinpath("report_template.html").read_text(encoding="utf-8"))
+    template = Template(CORE.joinpath("report_template.html").read_text(encoding="utf-8"))
     html = template.substitute(
+        experiment=escape(experiment),
         forecast_date=forecast_date.isoformat(),
         display_date=forecast_date.strftime("%A, %d %B %Y"),
         summary=escape(report["summary"]),

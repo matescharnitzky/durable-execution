@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Weather forecast for $forecast_date · LangGraph</title>
+  <title>Weather forecast for $forecast_date · $experiment</title>
   <style>
     :root { color-scheme: light; --ink: #182e3d; --muted: #61717b; --line: #dce3e5; --paper: #fff; --accent: #bd592e; }
     * { box-sizing: border-box; }
@@ -85,7 +85,7 @@
 </head>
 <body>
   <main>
-    <div class="masthead"><div class="brand"><span aria-hidden="true">◒</span> The weather report</div><span class="experiment">LangGraph</span></div>
+    <div class="masthead"><div class="brand"><span aria-hidden="true">◒</span> The weather report</div><span class="experiment">$experiment</span></div>
     <header>
       <p class="eyebrow">The daily outlook</p>
       <h1>Around the world.</h1>
@@ -103,7 +103,7 @@
         <tbody>$rows</tbody>
       </table>
     </div>
-    <footer><p>LangGraph · Weather forecast from web sources</p><p>Generated $generated</p></footer>
+    <footer><p>$experiment · Weather forecast from web sources</p><p>Generated $generated</p></footer>
   </main>
 </body>
 </html>

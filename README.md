@@ -17,7 +17,7 @@ For Codex Cloud, create an environment for `matescharnitzky/durable-execution` u
 
 ## Report contract
 
-Core holds the system prompt and report schema. Test data lives under `core/tests`. The live workload covers 20 cities and requests tomorrow’s forecast. The prompt includes the city list. LangGraph uses a web search tool before generating the full report. DBOS, Temporal, and Pi use four batches of five. Each forecast includes the city, low and high temperatures in Celsius, conditions, and clickable source links. Render a single HTML report with the forecast date, summary, and one forecast per requested city in input order. Escape forecast text and citation labels before rendering.
+Core holds the system prompt, report schema, validation, HTML template, and report export. Exports use `report_<experiment>_<UTC timestamp>.html`. Test data lives under `core/tests`. The live workload covers 20 cities and requests tomorrow’s forecast. The prompt includes the city list. LangGraph uses a web search tool before generating the full report. DBOS, Temporal, and Pi use four batches of five. Each forecast includes the city, low and high temperatures in Celsius, conditions, and clickable source links. Render a single HTML report with the forecast date, summary, and one forecast per requested city in input order. Escape forecast text and citation labels before rendering.
 
 The runtime integrations use their own OpenAI clients to call Responses with hosted web search for live forecasts. The runtime owns persistence for unfinished work. The fault-injection endpoint's request log serves as evidence alongside native runtime history.
 
