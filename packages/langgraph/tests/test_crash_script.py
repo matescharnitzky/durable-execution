@@ -16,7 +16,7 @@ class CrashScriptTest(unittest.TestCase):
                 '  echo "Status command failed" >&2\n'
                 '  exit 7\n'
                 'fi\n'
-                'sleep 30\n'
+                'exec sleep 30\n'
             )
             make.chmod(0o755)
             result = subprocess.run(
