@@ -42,14 +42,17 @@ export async function report(command: string, runId: string, options: { output?:
     if (command === "status") {
       const state = !stored ? "unknown" : stored.status === "done" ? "complete" : stored.status === "unanswered" ? "failed" : "pending";
       if (options.json) {
-        console.log(JSON.stringify({ run_id: runId, state, submission_id: stored?.id, submission_status: stored?.status }));
+        console.log(JSON.stringify({ run_id: runId, state, submission_id: stored?.id, submission_status: stored?.status, reason: stored?.status === "unanswered" ? stored.reason : undefined }));
         return;
       }
       console.log(`Run: ${runId}\nState: ${state} · Submission: ${stored?.status || "none"}`);
+      if (stored?.status === "unanswered" && typeof stored.detail === "string") console.log(stored.detail);
       if (!stored) return;
       const conversation = await harness.conversation(stored.conversationId, context);
-      const view = await conversation!.context(context);
-      console.table(view.messages.filter(message => message.role !== "system").map((message, index) => ({
+      const entries = await conversation!.entries({}, 100, undefined, context);
+      console.log("Latest 100 committed history entries:");
+      const messages = entries.items.toReversed().flatMap(entry => entry.model || []);
+      console.table(messages.filter(message => message.role !== "system").map((message, index) => ({
         Turn: index + 1,
         Role: message.role,
         "Saved content": (typeof message.content === "string" ? message.content : message.content.map(part =>
@@ -66,7 +69,10 @@ export async function report(command: string, runId: string, options: { output?:
     if (!submission) throw new Error("No durable submission exists for this run");
     harness.resume();
     const settled = await submission.wait(context);
-    if (settled.status !== "done" || settled.type !== "input") throw new Error(`Pi submission ended as ${settled.status}`);
+    if (settled.status !== "done" || settled.type !== "input") {
+      const detail = settled.status === "unanswered" && typeof settled.detail === "string" ? `: ${settled.detail}` : "";
+      throw new Error(`Pi submission ended as ${settled.status}${detail}`);
+    }
     const answer = await storage.entry(settled.conversationId, settled.answer, context);
     const message = answer?.entry.model?.find(message => message.role === "assistant");
     if (!message || message.role !== "assistant") throw new Error("No saved final report");

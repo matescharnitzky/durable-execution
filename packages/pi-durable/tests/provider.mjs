@@ -51,15 +51,18 @@ mock.module("@earendil-works/pi-ai/api/openai-responses", {
       }
       queueMicrotask(async () => {
         if (search) await options.onProviderStreamEvent({ type: "response.output_text.annotation.added", annotation: source }, model);
-        const toolCall = !search && results.length < queries.length;
+        const failure = process.env.PI_TEST_FAIL === "1";
+        const toolCall = !search && !failure && results.length < queries.length;
         const message = {
           role: "assistant", api: model.api, provider: model.provider, model: model.id,
-          content: toolCall ? [{ type: "toolCall", id: `call_${results.length}`, name: "web_search", arguments: { query: queries[results.length] } }]
+          content: failure ? [] : toolCall ? [{ type: "toolCall", id: `call_${results.length}`, name: "web_search", arguments: { query: queries[results.length] } }]
             : [{ type: "text", text: search ? `Search answer for ${query}` : fixture }],
-          stopReason: toolCall ? "toolUse" : "stop", timestamp: Date.now(), usage,
+          errorMessage: failure ? "Fixture provider quota exhausted" : undefined,
+          stopReason: failure ? "error" : toolCall ? "toolUse" : "stop", timestamp: Date.now(), usage,
         };
         stream.push({ type: "start", partial: message });
-        stream.push({ type: "done", reason: message.stopReason, message });
+        stream.push(message.stopReason === "error" ? { type: "error", reason: "error", error: message }
+          : { type: "done", reason: message.stopReason, message });
       });
       return stream;
     },
