@@ -11,7 +11,7 @@ make setup
 make check
 ```
 
-Copy `.env.example` to `.env` if you haven't configured it yet. Set `OPENAI_API_KEY` and optionally `LOGFIRE_TOKEN`; leave database fields empty for local defaults. The OpenAI key covers both model calls and web search.
+Copy `.env.example` to `.env` if you haven't configured it yet. Set `OPENAI_API_KEY`, `PGADMIN_EMAIL`, and `PGADMIN_PASSWORD`, plus optionally `LOGFIRE_TOKEN`. Set `POSTGRES_USER` and `POSTGRES_PASSWORD` to use your database credentials; otherwise local defaults apply. The OpenAI key covers both model calls and web search.
 
 Plain values, exported variables, and `op://` references are supported. For 1Password, install its CLI, enable desktop app integration, and use field references from the `durable-execution` item in the Development vault. Make targets resolve them through `scripts/1password.sh`.
 
@@ -24,7 +24,7 @@ make up
 make langgraph-run RUN_ID=report-1
 ```
 
-pgAdmin is available at [localhost:55080](http://localhost:55080).
+PostgreSQL uses `localhost:55432`; pgAdmin is available at [localhost:55080](http://localhost:55080).
 
 Reports are saved as `artifacts/report_langgraph_<UTC timestamp>.html`. Use a fresh run ID for each new execution. Set `OUTPUT=artifacts/custom.html` to choose a filename.
 

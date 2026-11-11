@@ -11,9 +11,9 @@ All three targets load `.env` and resolve any 1Password references through `scri
 
 The shared prompt asks for tomorrow’s forecast for the listed cities. The agent determines the date through web search. Resuming continues from the saved checkpoint.
 
-The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_URL` if using different database settings. pgAdmin is available at [localhost:55080](http://localhost:55080). See the [root README](../../README.md#setup) for plain environment values and 1Password setup.
+The CLI uses `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` for the local Compose database on port 55432. `LANGGRAPH_DATABASE_URL` overrides the full connection configuration. pgAdmin is available at [localhost:55080](http://localhost:55080). See the [root README](../../README.md#setup) for plain environment values and 1Password setup.
 
-Run the credential-free demo with `uv run --locked python tests/recovery/demo.py .venv/bin/langgraph-report --search-tool`. The fixture completes web search, then injects a fault during the final model call. After a worker kill, `resume` uses the original PostgreSQL thread ID and reuses the saved search result. The OpenAI client retries a one-time 429 or dropped connection within the same process.
+Run the credential-free demo with `./scripts/1password.sh uv run --env-file .env --locked python tests/recovery/demo.py .venv/bin/langgraph-report --search-tool`. The fixture completes web search, then injects a fault during the final model call. After a worker kill, `resume` uses the original PostgreSQL thread ID and reuses the saved search result. The OpenAI client retries a one-time 429 or dropped connection within the same process.
 
 The CLI configures LangChain’s `create_agent` with the shared system prompt, PostgreSQL checkpointer, and the OpenAI web-search tool from `tools.py`. `config.py` loads the model, database URL, and credentials from the environment. The shared `weather_core.report` renderer exports the forecast with `experiment="LangGraph"`. Its HTML template lives in core. The HTML report is self-contained and adapts to desktop, mobile, and print. Run and resume generate a new timestamped filename by default; `--output` overrides the path.
 
