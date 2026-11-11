@@ -15,7 +15,7 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 echo 'Waiting for the first checkpoint...'
-until make --no-print-directory langgraph-status RUN_ID="$run_id" |
+until make --no-print-directory langgraph-status RUN_ID="$run_id" STATUS_ARGS=--json |
   .venv/bin/python -c 'import json, sys; sys.exit(json.load(sys.stdin)["state"] == "unknown")'; do
   if ! kill -0 "$worker_pid" 2>/dev/null; then
     wait "$worker_pid"

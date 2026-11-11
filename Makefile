@@ -6,11 +6,13 @@ setup:
 
 check:
 	uv run --locked --package weather-core python -m unittest discover -s core/tests
+	uv run --locked --package langgraph-report python -m unittest discover -s packages/langgraph/tests
 
 UV_ENV_FILE := $(if $(wildcard .env),--env-file .env)
 
 RUN_ID ?= report-1
 OUTPUT ?=
+STATUS_ARGS ?=
 
 up:
 	@./scripts/1password.sh docker compose up -d --wait
@@ -24,7 +26,7 @@ langgraph-run:
 	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked langgraph-report run "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
 
 langgraph-status:
-	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked langgraph-report status "$(RUN_ID)"
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked langgraph-report status "$(RUN_ID)" $(STATUS_ARGS)
 
 langgraph-resume:
 	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked langgraph-report resume "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")

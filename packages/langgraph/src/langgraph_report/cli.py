@@ -1,13 +1,17 @@
 import json
 from contextlib import contextmanager
 from pathlib import Path
+from textwrap import shorten
 from typing import Annotated
 
 import typer
 from langchain.agents import create_agent
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.postgres import PostgresSaver
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
 
 from langgraph_report.config import Settings
 from langgraph_report.observability import configure_telemetry
@@ -65,16 +69,47 @@ def run(
 
 
 @app.command()
-def status(run_id: str) -> None:
+def status(
+    run_id: str,
+    as_json: Annotated[bool, typer.Option("--json", help="Return machine-readable status")] = False,
+) -> None:
     with report_agent(run_id, "status") as (agent, config):
         state = agent.get_state(config)
         messages = state.values.get("messages", [])
         complete = bool(messages) and isinstance(messages[-1], AIMessage) and not state.next
-        typer.echo(json.dumps({
+        summary = {
             "run_id": run_id,
             "state": ("complete" if complete else "pending") if state.values else "unknown",
             "next": list(state.next),
-        }))
+        }
+        if as_json:
+            typer.echo(json.dumps(summary))
+            return
+
+        console = Console()
+        console.print(f"Run: {run_id}", markup=False)
+        console.print(f"State: {summary['state']} · Next: {', '.join(state.next) or '—'}", markup=False)
+        if not messages:
+            console.print("No saved turns.")
+            return
+
+        table = Table(title="Turns saved in PostgreSQL", header_style="bold cyan")
+        table.add_column("Turn", justify="right")
+        table.add_column("Type")
+        table.add_column("Saved content", max_width=96)
+        for number, message in enumerate(messages, start=1):
+            kind = "User" if isinstance(message, HumanMessage) else "Model"
+            content = message.text
+            if isinstance(message, AIMessage) and message.tool_calls:
+                kind = "Model → tool"
+                content = f"{len(message.tool_calls)} tool call(s): " + "\n".join(
+                    f"{call['name']}({json.dumps(call['args'], ensure_ascii=False)})"
+                    for call in message.tool_calls
+                )
+            elif isinstance(message, ToolMessage):
+                kind = f"Tool: {message.name or 'result'}"
+            table.add_row(str(number), Text(kind), Text(shorten(content, width=240, placeholder="…")))
+        console.print(table)
 
 
 @app.command()
