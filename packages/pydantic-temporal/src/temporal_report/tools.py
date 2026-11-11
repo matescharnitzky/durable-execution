@@ -4,12 +4,13 @@ from pydantic_ai.messages import TextPart, WebCitationSource
 from pydantic_ai.models.instrumented import InstrumentationSettings
 
 from temporal_report.config import Settings
+from weather_core.prompts import WEB_SEARCH_INSTRUCTIONS
 
 search_agent = Agent(
     f"openai-responses:{Settings().openai_model}",
     defer_model_check=True,
     name="temporal_web_search",
-    instructions="Search public web pages for the query and cite their HTTP(S) URLs. Do not use weather widgets, internal reference IDs, or placeholder URLs as sources.",
+    instructions=WEB_SEARCH_INSTRUCTIONS,
     capabilities=[
         NativeTool(WebSearchTool()),
         Instrumentation(InstrumentationSettings(include_content=False)),
