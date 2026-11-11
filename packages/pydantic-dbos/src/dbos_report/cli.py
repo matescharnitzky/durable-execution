@@ -37,11 +37,6 @@ def runtime():
         DBOS.destroy()
 
 
-def save_report(output: Path | None, answer: dict) -> None:
-    path = write_report(output, validate_report(answer), experiment="DBOS")
-    typer.echo(f"Report saved to {path.resolve()}", err=True)
-
-
 @app.command()
 def run(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
     with runtime():
@@ -49,7 +44,8 @@ def run(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = 
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
         with SetWorkflowID(run_id):
             handle = DBOS.start_workflow(report, run_id)
-        save_report(output, handle.get_result())
+        path = write_report(output, validate_report(handle.get_result()), experiment="DBOS")
+        typer.echo(f"Report saved to {path.resolve()}", err=True)
 
 
 @app.command()
@@ -91,4 +87,5 @@ def resume(run_id: str, output: Annotated[Path | None, typer.Option("--output")]
         if state is None:
             raise typer.BadParameter("Unknown run ID.", param_hint="run_id")
         handle = DBOS.resume_workflow(run_id) if state.status in {"ERROR", "CANCELLED", "SUSPENDED", "MAX_RECOVERY_ATTEMPTS_EXCEEDED"} else DBOS.retrieve_workflow(run_id)
-        save_report(output, handle.get_result())
+        path = write_report(output, validate_report(handle.get_result()), experiment="DBOS")
+        typer.echo(f"Report saved to {path.resolve()}", err=True)
