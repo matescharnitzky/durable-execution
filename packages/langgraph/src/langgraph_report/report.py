@@ -1,10 +1,13 @@
 """Forecast validation and HTML output for the LangGraph adapter."""
 
 import json
+from datetime import date, datetime, timezone
 from html import escape
 from importlib.resources import files
 from pathlib import Path
+from string import Template
 from tempfile import NamedTemporaryFile
+from urllib.parse import urlsplit
 
 from jsonschema import Draft202012Validator
 
@@ -22,27 +25,38 @@ def validate_report(result: dict) -> dict:
     return result
 
 
-def write_report(path: Path, results: list[dict]) -> None:
-    forecast_date = escape(results[0]["forecast_date"])
-    summaries = "\n".join(f"<p>{escape(batch['summary'])}</p>" for batch in results)
+def write_report(path: Path | None, report: dict) -> Path:
+    generated = datetime.now(timezone.utc)
+    if path is None:
+        path = Path("artifacts") / f"report_langgraph_{generated:%Y%m%d_%H%M%S_%f}Z.html"
+    forecasts = report["forecasts"]
     rows = []
-    for result in results:
-        for row in result["forecasts"]:
-            sources = ", ".join(
-                f'<a href="{escape(src["url"])}">{escape(src["title"])}</a>'
-                for src in row["sources"]
-            )
-            rows.append(
-                f"<tr><th scope=\"row\">{escape(row['city'])}</th>"
-                f"<td>{row['low_c']}–{row['high_c']} °C</td>"
-                f"<td>{escape(row['conditions'])}</td><td>{sources}</td></tr>"
-            )
-    html = (
-        '<!doctype html><html lang="en"><meta charset="utf-8">'
-        f"<title>Weather forecast for {forecast_date}</title>"
-        f"<h1>Weather forecast for {forecast_date}</h1>{summaries}"
-        '<table><thead><tr><th>City</th><th>Low–high</th><th>Conditions</th><th>Sources</th></tr>'
-        f"</thead><tbody>{''.join(rows)}</tbody></table></html>\n"
+    for row in forecasts:
+        city, _, country = row["city"].partition(", ")
+        sources = "".join(
+            f'<a href="{escape(src["url"])}" title="{escape(src["title"])}">'
+            f'{escape(urlsplit(src["url"]).hostname or src["title"])} <span aria-hidden="true">↗</span></a>'
+            for src in row["sources"]
+        )
+        rows.append(
+            f'<tr><th scope="row" aria-label="{escape(row["city"])}"><span class="city">{escape(city)}</span>'
+            f'<span class="country">{escape(country)}</span></th>'
+            f'<td class="temperatures"><span class="low">{row["low_c"]:g}°</span>'
+            f'<span class="range-line" aria-hidden="true"></span><strong>{row["high_c"]:g}°</strong></td>'
+            f'<td class="conditions">{escape(row["conditions"])}</td>'
+            f'<td class="sources">{sources}</td></tr>'
+        )
+    forecast_date = date.fromisoformat(report["forecast_date"])
+    template = Template(files("langgraph_report").joinpath("report_template.html").read_text(encoding="utf-8"))
+    html = template.substitute(
+        forecast_date=forecast_date.isoformat(),
+        display_date=forecast_date.strftime("%A, %d %B %Y"),
+        summary=escape(report["summary"]),
+        city_count=len(forecasts),
+        lowest=f'{min(row["low_c"] for row in forecasts):g}',
+        highest=f'{max(row["high_c"] for row in forecasts):g}',
+        rows="".join(rows),
+        generated=generated.strftime("%d %b %Y · %H:%M UTC"),
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     with NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as output:
@@ -53,3 +67,4 @@ def write_report(path: Path, results: list[dict]) -> None:
             temporary.replace(path)
         finally:
             temporary.unlink(missing_ok=True)
+    return path

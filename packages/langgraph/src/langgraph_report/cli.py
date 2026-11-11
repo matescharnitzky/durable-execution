@@ -41,17 +41,17 @@ def report_agent(run_id: str, command: str):
         yield agent, config
 
 
-def save_report(output: Path, messages) -> None:
+def save_report(output: Path | None, messages) -> None:
     answer = messages[-1].text.strip().removeprefix("```json").removesuffix("```").strip()
     report = validate_report(json.loads(answer))
-    write_report(output, [report])
-    typer.echo(f"Report saved to {output.resolve()}", err=True)
+    path = write_report(output, report)
+    typer.echo(f"Report saved to {path.resolve()}", err=True)
 
 
 @app.command()
 def run(
     run_id: str,
-    output: Annotated[Path, typer.Option("--output")],
+    output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
     with report_agent(run_id, "run") as (agent, config):
         if agent.get_state(config).values:
@@ -80,7 +80,7 @@ def status(run_id: str) -> None:
 @app.command()
 def resume(
     run_id: str,
-    output: Annotated[Path, typer.Option("--output")],
+    output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
     with report_agent(run_id, "resume") as (agent, config):
         state = agent.get_state(config)

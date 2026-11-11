@@ -7,7 +7,7 @@ make langgraph-status
 make langgraph-resume
 ```
 
-All three targets load `.env` and resolve any 1Password references through `scripts/1password.sh`. The defaults are `RUN_ID=report-1` and `OUTPUT=artifacts/report.html`. Use a fresh ID for a new run, for example `make langgraph-run RUN_ID=report-2 OUTPUT=artifacts/report-2.html`. Pass the same `RUN_ID` to status and resume. Use `make up` to start PostgreSQL. `make down` removes the containers and database volume, including saved checkpoints. Keep PostgreSQL running when stopping and resuming a worker.
+All three targets load `.env` and resolve any 1Password references through `scripts/1password.sh`. The default run ID is `report-1`. Reports are saved automatically as `artifacts/report_langgraph_<UTC timestamp>.html`. Use a fresh ID for a new run, for example `make langgraph-run RUN_ID=report-2`. Override the filename with `OUTPUT=artifacts/custom.html` when needed. Pass the same `RUN_ID` to status and resume. Use `make up` to start PostgreSQL. `make down` removes the containers and database volume, including saved checkpoints. Keep PostgreSQL running when stopping and resuming a worker.
 
 The shared prompt asks for tomorrow’s forecast for the listed cities. The agent determines the date through web search. Resuming continues from the saved checkpoint.
 
@@ -15,7 +15,7 @@ The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_UR
 
 Run the credential-free demo with `uv run --locked python tests/recovery/demo.py .venv/bin/langgraph-report --search-tool`. The fixture completes web search, then injects a fault during the final model call. After a worker kill, `resume` uses the original PostgreSQL thread ID and reuses the saved search result. The OpenAI client retries a one-time 429 or dropped connection within the same process.
 
-The CLI configures LangChain’s `create_agent` with the shared system prompt, PostgreSQL checkpointer, and the OpenAI web-search tool from `tools.py`. `config.py` loads the model, database URL, and credentials from the environment. The HTML report is written to the file you pass to `--output`, such as `artifacts/report.html`.
+The CLI configures LangChain’s `create_agent` with the shared system prompt, PostgreSQL checkpointer, and the OpenAI web-search tool from `tools.py`. `config.py` loads the model, database URL, and credentials from the environment. The HTML report is self-contained and adapts to desktop, mobile, and print. Run and resume generate a new timestamped filename by default; `--output` overrides the path.
 
 ## Observe a run
 

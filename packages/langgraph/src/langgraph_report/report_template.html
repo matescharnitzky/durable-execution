@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weather forecast for $forecast_date · LangGraph</title>
+  <style>
+    :root { color-scheme: light; --ink: #182e3d; --muted: #61717b; --line: #dce3e5; --paper: #fff; --accent: #bd592e; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f3f5f4; color: var(--ink); font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { max-width: 1180px; margin: 48px auto; padding: 0 32px; }
+    .masthead { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+    .brand { font-size: 12px; font-weight: 750; letter-spacing: .17em; text-transform: uppercase; }
+    .brand span { color: var(--accent); margin-right: 10px; }
+    .experiment { border: 1px solid #cbd6db; border-radius: 30px; padding: 4px 13px; font-size: 12px; font-weight: 600; }
+    header { padding: 40px 0 30px; }
+    .eyebrow { margin: 0 0 10px; color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 0 0 9px; font-size: clamp(36px, 6vw, 58px); line-height: 1.1; font-weight: 650; letter-spacing: -.045em; }
+    .date { color: var(--muted); font-size: 17px; }
+    .overview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: center; margin-bottom: 36px; padding: 24px 28px; background: #e7edef; border-radius: 12px; }
+    .overview h2 { margin: 0 0 7px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+    .overview p { margin: 0; max-width: 720px; color: #425863; }
+    .stats { display: flex; gap: 28px; margin: 0; }
+    .stats div { min-width: 58px; }
+    dt { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    dd { margin: 2px 0 0; font-size: 28px; line-height: 1.2; font-weight: 650; letter-spacing: -.04em; }
+    .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 14px; }
+    .section-heading h2 { margin: 0; font-size: 19px; letter-spacing: -.025em; }
+    .section-heading p { margin: 0; color: var(--muted); font-size: 12px; }
+    .table-shell { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--paper); }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    thead { background: #f8faf9; }
+    thead th { color: var(--muted); font-size: 10px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; padding: 15px 22px; }
+    tbody th, tbody td { padding: 20px 22px; border-top: 1px solid #e8edee; vertical-align: middle; }
+    tbody tr:hover { background: #fafcfc; }
+    tbody th { width: 21%; font-weight: 600; }
+    .city { display: block; font-size: 15px; }
+    .country { display: block; color: var(--muted); font-size: 12px; font-weight: 400; margin-top: 1px; }
+    .temperatures { width: 16%; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 19px; }
+    .low { color: #74828c; }
+    .range-line { display: inline-block; width: 18px; height: 1px; margin: 0 10px 6px; background: #b9c6cc; }
+    .temperatures strong { font-weight: 650; }
+    .conditions { width: 40%; color: #425863; font-size: 13px; }
+    .sources { width: 23%; font-size: 11px; }
+    .sources a { display: block; width: fit-content; max-width: 100%; margin: 3px 0; color: #336477; text-decoration: none; overflow-wrap: anywhere; }
+    .sources a:hover { text-decoration: underline; }
+    .sources a span { color: #7a939f; }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+    footer { display: flex; justify-content: space-between; gap: 20px; padding: 22px 0 4px; color: var(--muted); font-size: 11px; }
+    footer p { margin: 0; }
+    @media (max-width: 900px) {
+      .overview { grid-template-columns: 1fr; gap: 22px; }
+      .stats { border-top: 1px solid #cdd9de; padding-top: 18px; }
+      tbody th, tbody td, thead th { padding-left: 15px; padding-right: 15px; }
+    }
+    @media (max-width: 620px) {
+      main { margin: 24px auto; padding: 0 18px; }
+      .brand { font-size: 10px; letter-spacing: .1em; }
+      header { padding: 30px 0 24px; }
+      .date { font-size: 14px; }
+      .overview { padding: 20px; margin-bottom: 28px; }
+      .overview p { font-size: 14px; }
+      .stats { justify-content: space-between; gap: 16px; }
+      dd { font-size: 25px; }
+      .section-heading { display: block; }
+      .section-heading p { margin-top: 4px; }
+      thead { display: none; }
+      table, tbody { display: block; }
+      tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 16px; padding: 20px; border-top: 1px solid var(--line); }
+      tbody tr:first-child { border-top: 0; }
+      tbody th, tbody td { display: block; width: auto !important; border: 0; padding: 0; }
+      .temperatures { text-align: right; }
+      .conditions, .sources { grid-column: 1 / -1; }
+      .sources { display: flex; flex-wrap: wrap; gap: 3px 16px; }
+      footer { flex-direction: column; gap: 5px; }
+    }
+    @media print {
+      body { background: white; }
+      main { margin: 0; padding: 0; max-width: none; }
+      .masthead, .overview, thead { print-color-adjust: exact; }
+      tr { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="masthead"><div class="brand"><span aria-hidden="true">◒</span> The weather report</div><span class="experiment">LangGraph</span></div>
+    <header>
+      <p class="eyebrow">The daily outlook</p>
+      <h1>Around the world.</h1>
+      <time class="date" datetime="$forecast_date">$display_date</time>
+    </header>
+    <section class="overview" aria-label="Forecast overview">
+      <div><h2>At a glance</h2><p>$summary</p></div>
+      <dl class="stats"><div><dt>Cities</dt><dd>$city_count</dd></div><div><dt>Lowest low</dt><dd>$lowest°</dd></div><div><dt>Highest high</dt><dd>$highest°</dd></div></dl>
+    </section>
+    <div class="section-heading"><h2>City by city</h2><p>Temperatures in °C · daily low / high</p></div>
+    <div class="table-shell">
+      <table>
+        <caption>Weather forecast for $display_date. Temperatures in degrees Celsius.</caption>
+        <thead><tr><th scope="col">Location</th><th scope="col">Low / high</th><th scope="col">Forecast</th><th scope="col">Sources</th></tr></thead>
+        <tbody>$rows</tbody>
+      </table>
+    </div>
+    <footer><p>LangGraph · Weather forecast from web sources</p><p>Generated $generated</p></footer>
+  </main>
+</body>
+</html>
