@@ -28,13 +28,14 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
             pass
 
         def do_POST(self):
-            assert self.path == "/v1/responses", self.path
+            assert self.path in ("/v1/responses", "/v1/chat/completions"), self.path
+            completions = self.path == "/v1/chat/completions"
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             tools = body.get("tools", [])
             hosted_search = any(tool["type"] in ("web_search", "web_search_preview") for tool in tools)
-            request_input = body["input"]
+            request_input = body["messages"] if completions else body["input"]
             tool_result = next(
-                (item for item in request_input if item.get("type") == "function_call_output"), None
+                (item for item in request_input if item.get("type") == "function_call_output" or item.get("role") == "tool"), None
             ) if isinstance(request_input, list) else None
             if isinstance(request_input, list):
                 request_input = next(item["content"] for item in request_input if item.get("role") == "user")
@@ -49,10 +50,10 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
                 if hosted_search:
                     request_number = "search"
                 elif tool_result:
-                    assert json.loads(tool_result["output"]) == report
+                    assert json.loads(tool_result["content"] if completions else tool_result["output"]) == report
                     request_number = "answer"
                 else:
-                    assert any(tool["type"] == "function" and tool["name"] == "web_search" for tool in tools)
+                    assert any(tool["type"] == "function" and (tool["function"]["name"] if completions else tool["name"]) == "web_search" for tool in tools)
                     request_number = "plan"
                 result = report
                 inject_fault = request_number == "answer"
@@ -115,6 +116,27 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
                           "output_tokens_details": {"reasoning_tokens": 0}},
                 "output": items,
             }
+            if completions:
+                content = {"role": "assistant", "content": json.dumps(result)}
+                if request_number == "plan":
+                    content = {
+                        "role": "assistant", "content": None,
+                        "tool_calls": [{
+                            "id": "call_fixture", "type": "function",
+                            "function": {
+                                "name": "web_search",
+                                "arguments": json.dumps({"query": json.dumps(forecast)}),
+                            },
+                        }],
+                    }
+                response = {
+                    "id": f"chatcmpl_{request_number}_{attempt}",
+                    "object": "chat.completion", "created": 1_800_000_000,
+                    "model": body["model"],
+                    "choices": [{"index": 0, "message": content,
+                                 "finish_reason": "tool_calls" if request_number == "plan" else "stop"}],
+                    "usage": {"prompt_tokens": 100, "completion_tokens": 100, "total_tokens": 200},
+                }
             if status == 429:
                 response = {"error": {"message": "Fixture rate limit", "type": "rate_limit_error"}}
             if status == 200 and body.get("stream"):

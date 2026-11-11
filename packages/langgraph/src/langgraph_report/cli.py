@@ -1,69 +1,92 @@
 import json
-import sys
+from contextlib import contextmanager
+from datetime import datetime
+from pathlib import Path
+from typing import Annotated
 
+import typer
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.postgres import PostgresSaver
-
-from langgraph_report.arguments import arguments
 
 from langgraph_report.config import Settings
 from langgraph_report.observability import configure_telemetry
-from langgraph_report.prompts import load_search_config
+from langgraph_report.prompts import REPORT_PROMPT
 from langgraph_report.report import report_cities, validate_report, write_report
-from langgraph_report.tools import forecast_model, web_search_tool
+from langgraph_report.tools import web_search
+
+app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
 
-def main() -> None:
-    args = arguments()
+@contextmanager
+def report_agent(run_id: str, command: str):
     settings = Settings()
     configure_telemetry(settings)
-
     with PostgresSaver.from_conn_string(settings.database_url) as saver:
         saver.setup()
-        model = forecast_model(settings)
         agent = create_agent(
-            model=model,
-            tools=[web_search_tool(model)],
-            system_prompt=(
-                "Call web_search to collect forecasts and source URLs before writing the report. "
-                + load_search_config().instructions
-            ),
+            model=ChatOpenAI(model=settings.openai_model),
+            tools=[web_search],
+            system_prompt=REPORT_PROMPT,
             checkpointer=saver,
             name="Weather report",
         )
         config = {
-            "configurable": {"thread_id": args.run_id},
+            "configurable": {"thread_id": run_id},
             "metadata": {
                 "durable.runtime": "langgraph",
-                "durable.run_id": args.run_id,
-                "durable.command": args.command,
+                "durable.run_id": run_id,
+                "durable.command": command,
             },
         }
+        yield agent, config
+
+
+def save_report(output: Path, messages) -> None:
+    request = json.loads(messages[0].text)
+    answer = messages[-1].text.strip().removeprefix("```json").removesuffix("```").strip()
+    report = validate_report(json.loads(answer), request["forecast_date"], request["cities"])
+    write_report(output, [report])
+    typer.echo(f"Report saved to {output.resolve()}", err=True)
+
+
+@app.command()
+def run(
+    run_id: str,
+    forecast_date: Annotated[datetime, typer.Option("--date", formats=["%Y-%m-%d"])],
+    output: Annotated[Path, typer.Option("--output")],
+    fixture: Annotated[bool, typer.Option(help="Use the two fixture cities")] = False,
+) -> None:
+    with report_agent(run_id, "run") as (agent, config):
+        if agent.get_state(config).values:
+            raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
+        request = {"forecast_date": forecast_date.date().isoformat(), "cities": report_cities(fixture)}
+        result = agent.invoke({"messages": [HumanMessage(json.dumps(request))]}, config, durability="sync")
+        save_report(output, result["messages"])
+
+
+@app.command()
+def status(run_id: str) -> None:
+    with report_agent(run_id, "status") as (agent, config):
         state = agent.get_state(config)
         messages = state.values.get("messages", [])
         complete = bool(messages) and isinstance(messages[-1], AIMessage) and not state.next
-        if args.command == "status":
-            print(json.dumps({
-                "run_id": args.run_id,
-                "state": ("complete" if complete else "pending") if state.values else "unknown",
-                "next": list(state.next),
-            }))
-            return
+        typer.echo(json.dumps({
+            "run_id": run_id,
+            "state": ("complete" if complete else "pending") if state.values else "unknown",
+            "next": list(state.next),
+        }))
 
-        run_input = None
-        if args.command == "run":
-            if state.values:
-                raise SystemExit("Run ID already exists. Use resume.")
-            request = {"forecast_date": args.date.isoformat(), "cities": report_cities(args.fixture)}
-            run_input = {"messages": [HumanMessage(json.dumps(request))]}
-        elif not state.values:
-            raise SystemExit("Unknown run ID.")
 
-        if not complete:
-            messages = agent.invoke(run_input, config, durability="sync")["messages"]
-        request = json.loads(messages[0].text)
-        answer = messages[-1].text.strip().removeprefix("```json").removesuffix("```").strip()
-        report = validate_report(json.loads(answer), request["forecast_date"], request["cities"])
-        write_report(args.output, [report])
-        print(f"Report saved to {args.output.resolve()}", file=sys.stderr)
+@app.command()
+def resume(
+    run_id: str,
+    output: Annotated[Path, typer.Option("--output")],
+) -> None:
+    with report_agent(run_id, "resume") as (agent, config):
+        state = agent.get_state(config)
+        if not state.values:
+            raise typer.BadParameter("Unknown run ID.", param_hint="run_id")
+        result = agent.invoke(None, config, durability="sync") if state.next else state.values
+        save_report(output, result["messages"])
