@@ -4,12 +4,34 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from weather_core.report import write_report
+from weather_core.report import validate_report, write_report
 
 SAMPLE = Path(__file__).with_name("report.json")
 
 
 class ReportOutputTest(unittest.TestCase):
+    def test_unknown_forecasts_do_not_become_zero_temperatures(self):
+        report = json.loads(SAMPLE.read_text())
+        for row in report["forecasts"]:
+            row.update(low_c=None, high_c=None, conditions="Forecast unavailable", sources=[])
+        validate_report(report)
+        with tempfile.TemporaryDirectory() as directory:
+            html = write_report(Path(directory) / "report.html", report, experiment="DBOS").read_text()
+        self.assertIn('class="unavailable">Unavailable', html)
+        self.assertIn("No verified source", html)
+        self.assertIn("<dd>—</dd>", html)
+        self.assertNotIn("0°", html)
+
+    def test_real_zero_is_preserved_and_missing_values_do_not_affect_extremes(self):
+        report = json.loads(SAMPLE.read_text())
+        report["forecasts"][0].update(low_c=0, high_c=0)
+        report["forecasts"][1].update(low_c=None, high_c=None)
+        validate_report(report)
+        with tempfile.TemporaryDirectory() as directory:
+            html = write_report(Path(directory) / "report.html", report, experiment="DBOS").read_text()
+        self.assertIn("<strong>0°</strong>", html)
+        self.assertEqual(html.count("<dd>0°</dd>"), 2)
+
     def test_default_exports_have_distinct_timestamped_names(self):
         report = json.loads(SAMPLE.read_text())
         with tempfile.TemporaryDirectory() as directory:
