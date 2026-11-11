@@ -26,7 +26,7 @@ Stop any separately started worker before running:
 ./tests/temporal-crash.sh
 ```
 
-The script starts a worker and client through Make, waits for a model activity to start, and asks when to kill both local process groups. Temporal and PostgreSQL stay running. After inspecting the native status table, press Enter to start a replacement worker and follow the original workflow. The script stops its replacement worker when finished.
+The script starts a worker and client through Make, waits for a model activity to start, and asks when to kill both local process groups. Temporal and PostgreSQL stay running. After inspecting the native status table, press Enter to start a replacement worker and follow the original workflow. The script stops its replacement worker when finished. Credentials are resolved once and reused across its Make commands.
 
 Temporal resumes automatically once a worker is available and the server detects the old attempt’s timeout. The default model activity heartbeat timeout is 30 seconds, so replacement can take time. Completed activities are reused; a hosted search inside an unfinished model activity can run again. Killing only the CLI client does not kill the worker or cancel the workflow.
 

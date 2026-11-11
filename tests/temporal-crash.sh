@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
+
+if [[ "${DURABLE_ENV_LOADED:-}" != "1" ]]; then
+  exec ./scripts/1password.sh env DURABLE_ENV_LOADED=1 bash tests/temporal-crash.sh "$@"
+fi
 run_id="${1:-crash-$(date +%Y%m%d-%H%M%S)-$$}"
 printf 'Run ID: %s\n' "$run_id"
 set -m
@@ -8,7 +12,7 @@ client_pid=""
 make temporal-worker </dev/null &
 worker_pid=$!
 cleanup() {
-  kill -KILL -- "-$worker_pid" 2>/dev/null || true
+  if [[ -n "$worker_pid" ]]; then kill -KILL -- "-$worker_pid" 2>/dev/null || true; fi
   if [[ -n "$client_pid" ]]; then kill -KILL -- "-$client_pid" 2>/dev/null || true; fi
 }
 trap cleanup EXIT
@@ -33,6 +37,7 @@ cleanup
 wait "$worker_pid" 2>/dev/null || true
 wait "$client_pid" 2>/dev/null || true
 client_pid=""
+worker_pid=""
 make temporal-status RUN_ID="$run_id"
 read -r -p "Press Enter to start a replacement worker and resume... "
 make temporal-worker </dev/null &
