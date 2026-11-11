@@ -1,11 +1,12 @@
 # LangGraph with PostgreSQL
 
 ```sh
-docker compose up -d --wait postgres
-uv run --locked langgraph-report run report-1 --output artifacts/report.html
-uv run --locked langgraph-report status report-1
-uv run --locked langgraph-report resume report-1 --output artifacts/report.html
+make langgraph-run
+make langgraph-status
+make langgraph-resume
 ```
+
+Run and resume start PostgreSQL and wait for it to be ready. All three targets load credentials from `.env` through 1Password. The defaults are `RUN_ID=report-1` and `OUTPUT=artifacts/report.html`. Use a fresh ID for a new run, for example `make langgraph-run RUN_ID=report-2 OUTPUT=artifacts/report-2.html`. Pass the same `RUN_ID` to status and resume. To start only PostgreSQL, use `make postgres`.
 
 The shared prompt asks for tomorrow’s forecast for the listed cities. The agent determines the date through web search. Resuming continues from the saved checkpoint.
 
