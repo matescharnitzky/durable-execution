@@ -10,6 +10,8 @@ import sys
 import tempfile
 import threading
 import uuid
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -19,6 +21,11 @@ FIXTURE = Path(__file__).resolve().parents[2] / "core/src/weather_core/fixtures/
 
 def scenario(command: list[str], fault: str, worker: list[str] | None, search_tool: bool = False) -> dict:
     report = json.loads(FIXTURE.read_text())
+    forecast_date = (
+        (datetime.now(ZoneInfo("Europe/Budapest")).date() + timedelta(days=1)).isoformat()
+        if search_tool else FIXTURE_DATE
+    )
+    report["forecast_date"] = forecast_date
     requests = []
     request_held = threading.Event()
     release = threading.Event()
@@ -42,7 +49,7 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
             if isinstance(request_input, list):
                 request_input = next(part["text"] for part in request_input if part["type"] == "input_text")
             forecast = json.loads(request_input)
-            assert forecast["forecast_date"] == FIXTURE_DATE
+            assert forecast["forecast_date"] == forecast_date
             cities = forecast["cities"]
             if search_tool:
                 assert cities == [row["city"] for row in report["forecasts"]]
@@ -182,7 +189,9 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
             output = Path(directory) / "weather.html"
             if worker:
                 worker_process = subprocess.Popen(worker, env=env)
-            args = ["run", run_id, "--date", FIXTURE_DATE, "--fixture", "--output", str(output)]
+            args = ["run", run_id, "--fixture", "--output", str(output)]
+            if not search_tool:
+                args.extend(["--date", FIXTURE_DATE])
             process = subprocess.Popen([*command, *args], env=env, stdout=sys.stderr)
             if fault == "crash":
                 if not request_held.wait(90):
