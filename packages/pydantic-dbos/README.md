@@ -8,7 +8,7 @@ make dbos-status RUN_ID=report-1
 make dbos-resume RUN_ID=report-1
 ```
 
-Use a fresh ID for each new execution. The shared prompt asks for tomorrow’s forecast for 20 cities. Pydantic AI uses OpenAI’s native web-search tool and structured output with the shared report schema. Reports use the core HTML renderer and are saved under `artifacts/dbos/report_dbos_<UTC timestamp>.html`. Set `OUTPUT` to override the path.
+Use a fresh ID for each new execution. The shared prompt asks for tomorrow’s forecast for 20 cities. The main Pydantic AI agent calls a `web_search` function tool, which uses OpenAI’s hosted search in a separate request. The final answer uses strict structured output with the shared report schema. Reports use the core HTML renderer and are saved under `artifacts/dbos/report_dbos_<UTC timestamp>.html`. Set `OUTPUT` to override the path.
 
 DBOS uses `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` from `.env`, connects on localhost port 5432, and stores its tables in the `dbos` schema. The runtime creates and migrates its own tables. In pgAdmin, browse **weather → Schemas → dbos → Tables**.
 
@@ -20,10 +20,14 @@ DBOS uses `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` from `.env`, c
 
 The script calls Make to run, inspect, and resume the same workflow. It waits until DBOS has stored the workflow before offering to kill its local process group. PostgreSQL stays running. Use Logfire or pgAdmin to choose when to press Enter. The script uses real OpenAI calls and resolves 1Password credentials once for the whole demo; its nested Make commands reuse that environment.
 
-DBOS records Pydantic AI model requests as durable steps. Completed steps are reused when the workflow replays. Hosted web searches inside an unfinished model request can run again. `status` shows the native saved steps and their output previews; `STATUS_ARGS=--json` returns machine-readable state. `resume` uses DBOS’s native workflow recovery, preserving the workflow ID. Completed workflows can export their saved report again.
+DBOS records each main-agent model request as a durable step. The `web_search` function has its own `@DBOS.step()` boundary, so completed searches are reused and returned to subsequent model turns when the workflow replays. A search interrupted before its step completes can run again. The agent chooses its queries; there is no application-controlled city batching or progress cache.
+
+`status` shows saved model turns and search results with their native step IDs. Before any step completes it prints “No completed steps saved yet.” `STATUS_ARGS=--json` returns machine-readable state. `resume` uses DBOS’s native workflow recovery, preserving the workflow ID. Completed workflows can export their saved report again. Use fresh run IDs for this version; unfinished workflows from the previous single-request implementation need the code version that started them.
 
 ## Logfire
 
 Set `LOGFIRE_TOKEN` in `.env`. Logfire is configured before DBOS launches, and DBOS’s native OpenTelemetry instrumentation emits workflow and step spans through that exporter. Pydantic AI adds agent and model spans with content disabled. Its agent metadata carries `durable.runtime=dbos` and `durable.run_id`; DBOS spans identify the workflow with `dbos.operation.workflow_id`. Correlate these with native DBOS step history. No separate exporter credentials are needed.
 
 [Pydantic AI’s DBOS integration](https://pydantic.dev/docs/ai/capabilities/durable_execution/dbos/)
+
+`make check` includes a credential-free recovery test with native DBOS SQLite storage and deterministic model responses. It kills the worker after a completed search while the next model request is in progress. The replacement worker must receive the saved search result without executing that search again. Live runs use PostgreSQL.

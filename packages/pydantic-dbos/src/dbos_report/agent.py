@@ -1,10 +1,11 @@
 from dbos import DBOS
-from pydantic_ai import Agent, NativeOutput, StructuredDict, WebSearchTool
-from pydantic_ai.capabilities import Instrumentation, NativeTool
+from pydantic_ai import Agent, NativeOutput, StructuredDict
+from pydantic_ai.capabilities import Instrumentation
 from pydantic_ai.durable_exec.dbos import DBOSDurability
 from pydantic_ai.models.instrumented import InstrumentationSettings
 
 from dbos_report.config import Settings
+from dbos_report.tools import web_search
 from weather_core.prompts import SYSTEM_PROMPT
 from weather_core.report import REPORT_SCHEMA, validate_report
 
@@ -14,8 +15,8 @@ agent = Agent(
     name="dbos_weather",
     instructions=SYSTEM_PROMPT,
     output_type=NativeOutput(StructuredDict(REPORT_SCHEMA), strict=True),
+    tools=[web_search],
     capabilities=[
-        NativeTool(WebSearchTool()),
         DBOSDurability(),
         Instrumentation(InstrumentationSettings(include_content=False)),
     ],
