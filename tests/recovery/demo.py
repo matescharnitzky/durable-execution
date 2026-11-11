@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 FIXTURE_DATE = "2027-01-15"
-FIXTURE = Path(__file__).resolve().parents[2] / "core/tests/fixtures/report.json"
+FIXTURE = Path(__file__).resolve().parents[2] / "core/tests/report.json"
 
 
 def scenario(command: list[str], fault: str, worker: list[str] | None, search_tool: bool = False) -> dict:
