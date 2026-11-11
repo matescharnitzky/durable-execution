@@ -48,3 +48,15 @@ make dbos-resume RUN_ID=report-1
 ```
 
 Start services with `make up` first. DBOS uses the `weather.dbos` schema and saves reports under `artifacts/dbos/`. See [DBOS details](packages/pydantic-dbos/README.md) for its crash demo and native recovery behavior.
+
+## Temporal
+
+Start services with `make up`, then run `make temporal-worker` in another terminal.
+
+```sh
+make temporal-run RUN_ID=report-1
+make temporal-status RUN_ID=report-1
+make temporal-resume RUN_ID=report-1
+```
+
+Reports go to `artifacts/temporal/`. See [Temporal details](packages/pydantic-temporal/README.md) for the worker-crash demo and native history.

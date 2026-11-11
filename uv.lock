@@ -1231,6 +1231,10 @@ dependencies = [
     { name = "logfire" },
     { name = "openai" },
     { name = "pydantic-ai-slim", extra = ["openai", "temporal"] },
+    { name = "pydantic-settings" },
+    { name = "rich" },
+    { name = "temporalio", extra = ["opentelemetry"] },
+    { name = "typer" },
     { name = "weather-core" },
 ]
 
@@ -1239,6 +1243,10 @@ requires-dist = [
     { name = "logfire", specifier = ">=5,<6" },
     { name = "openai", specifier = ">=3.31,<4" },
     { name = "pydantic-ai-slim", extras = ["openai", "temporal"], specifier = ">=2.66,<3" },
+    { name = "pydantic-settings", specifier = ">=2,<3" },
+    { name = "rich", specifier = ">=15,<16" },
+    { name = "temporalio", extras = ["opentelemetry"], specifier = ">=1.20,<2" },
+    { name = "typer", specifier = ">=0.16,<1" },
     { name = "weather-core", editable = "core" },
 ]
 
@@ -1261,6 +1269,12 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/76/d6/373d5ffe28263fc56ea0013bdd45715b4ff84f97d1052519b7c0d9ecd437/temporalio-1.35.0-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:8a5ce8b1e9c9e2df5fb9f17a345c0ef0a132c787cef8cf5a6593b5d707648253", size = 13988280, upload-time = "2026-10-28T20:13:31.667Z" },
     { url = "https://files.pythonhosted.org/packages/9c/41/47ad6f26002f84d8293d99098c414f75e9e8ff7955d034b7121bd211649b/temporalio-1.35.0-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:96310ae91b098c9fe2194f0892cef25381e8f870e48d5c069230312bbd1c6262", size = 14494297, upload-time = "2026-10-28T20:13:33.988Z" },
     { url = "https://files.pythonhosted.org/packages/db/33/30942b2d568df2c50089e381ee63b2d141f2ebfb7b4787bac3540f5cf617/temporalio-1.35.0-cp310-abi3-win_amd64.whl", hash = "sha256:6f434c0d3b6d049f4473f9f5d3e80b5e80c986440fd0490f2ee70cc631cbcddd", size = 15317073, upload-time = "2026-10-28T20:13:36.195Z" },
+]
+
+[package.optional-dependencies]
+opentelemetry = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-sdk" },
 ]
 
 [[package]]

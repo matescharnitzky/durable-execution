@@ -1,4 +1,4 @@
-.PHONY: setup check dbos-run dbos-status dbos-resume up down postgres langgraph-run langgraph-status langgraph-resume
+.PHONY: setup check temporal-run temporal-status temporal-resume temporal-worker dbos-run dbos-status dbos-resume up down postgres langgraph-run langgraph-status langgraph-resume
 
 setup:
 	uv sync --locked --all-packages
@@ -39,3 +39,15 @@ dbos-status:
 
 dbos-resume:
 	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked dbos-report resume "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+temporal-run:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked temporal-report run "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+temporal-status:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked temporal-report status "$(RUN_ID)" $(STATUS_ARGS)
+
+temporal-resume:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked temporal-report resume "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+temporal-worker:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked temporal-report worker
