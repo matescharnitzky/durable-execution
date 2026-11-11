@@ -4,17 +4,19 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from psycopg.errors import UndefinedColumn, UndefinedTable
 from typer.testing import CliRunner
 
 from langgraph_report.cli import app
 
 
 class SavedTurnsTest(unittest.TestCase):
-    def invoke(self, messages, next_nodes, *options):
+    def invoke(self, messages, next_nodes, *options, error=None):
         agent = MagicMock()
         agent.get_state.return_value = SimpleNamespace(
             values={"messages": messages} if messages else {}, next=next_nodes
         )
+        agent.get_state.side_effect = error
         context = MagicMock()
         context.__enter__.return_value = (agent, {})
         with patch("langgraph_report.cli.langgraph_agent", return_value=context):
@@ -42,3 +44,9 @@ class SavedTurnsTest(unittest.TestCase):
         output = self.invoke([], ())
         self.assertIn("unknown", output)
         self.assertIn("No saved turns.", output)
+
+    def test_status_during_checkpoint_setup_returns_unknown(self):
+        for error in (UndefinedTable, UndefinedColumn):
+            with self.subTest(error=error.__name__):
+                output = self.invoke([], (), "--json", error=error("Checkpoint schema is not ready"))
+                self.assertEqual(json.loads(output), {"run_id": "example", "state": "unknown", "next": []})

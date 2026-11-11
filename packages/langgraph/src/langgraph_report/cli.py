@@ -9,6 +9,7 @@ from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.postgres import PostgresSaver
+from psycopg.errors import UndefinedColumn, UndefinedTable
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
@@ -27,7 +28,8 @@ def langgraph_agent(run_id: str, command: str):
     settings = Settings()
     configure_telemetry(settings)
     with PostgresSaver.from_conn_string(settings.database_url) as saver:
-        saver.setup()
+        if command != "status":
+            saver.setup()
         agent = create_agent(
             model=ChatOpenAI(model=settings.openai_model),
             tools=[web_search],
@@ -74,7 +76,15 @@ def status(
     as_json: Annotated[bool, typer.Option("--json", help="Return machine-readable status")] = False,
 ) -> None:
     with langgraph_agent(run_id, "status") as (agent, config):
-        state = agent.get_state(config)
+        try:
+            state = agent.get_state(config)
+        except (UndefinedTable, UndefinedColumn):
+            # A new run may still be creating or migrating its checkpoint tables.
+            if as_json:
+                typer.echo(json.dumps({"run_id": run_id, "state": "unknown", "next": []}))
+            else:
+                typer.echo(f"Run: {run_id}\nState: unknown\nNo saved turns.")
+            return
         messages = state.values.get("messages", [])
         complete = bool(messages) and isinstance(messages[-1], AIMessage) and not state.next
         summary = {
