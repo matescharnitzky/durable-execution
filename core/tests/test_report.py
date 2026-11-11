@@ -19,7 +19,7 @@ class ReportOutputTest(unittest.TestCase):
                 first = write_report(None, report, experiment="LangGraph")
                 second = write_report(None, report, experiment="LangGraph")
                 self.assertRegex(first.name, r"^report_langgraph_\d{8}_\d{6}_\d{6}Z\.html$")
-                self.assertEqual(first.parent, Path("artifacts"))
+                self.assertEqual(first.parent, Path("artifacts/langgraph"))
                 self.assertNotEqual(first, second)
                 self.assertTrue(first.is_file() and second.is_file())
             finally:
@@ -54,6 +54,7 @@ class ReportOutputTest(unittest.TestCase):
                     with self.subTest(experiment=experiment):
                         path = write_report(None, report, experiment=experiment)
                         self.assertTrue(path.name.startswith(f"report_{experiment.lower()}_"))
+                        self.assertEqual(path.parent, Path("artifacts") / experiment.lower())
                         self.assertIn(f'<span class="experiment">{experiment}</span>', path.read_text())
                         self.assertIn(f'{experiment} · Weather forecast', path.read_text())
             finally:

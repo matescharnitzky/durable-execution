@@ -7,7 +7,7 @@ make langgraph-status
 make langgraph-resume
 ```
 
-All three targets load `.env` and resolve any 1Password references through `scripts/1password.sh`. The default run ID is `report-1`. Reports are saved automatically as `artifacts/report_langgraph_<UTC timestamp>.html`. Use a fresh ID for a new run, for example `make langgraph-run RUN_ID=report-2`. Override the filename with `OUTPUT=artifacts/custom.html` when needed. Pass the same `RUN_ID` to status and resume. Use `make up` to start PostgreSQL and pgAdmin. `make down` removes the containers and database volume, including saved checkpoints. Keep PostgreSQL running when stopping and resuming a worker.
+All three targets load `.env` and resolve any 1Password references through `scripts/1password.sh`. The default run ID is `report-1`. Reports are saved automatically as `artifacts/langgraph/report_langgraph_<UTC timestamp>.html`. Use a fresh ID for a new run, for example `make langgraph-run RUN_ID=report-2`. Override the filename with `OUTPUT=artifacts/custom.html` when needed. Pass the same `RUN_ID` to status and resume. Use `make up` to start PostgreSQL and pgAdmin. `make down` removes the containers and database volume, including saved checkpoints. Keep PostgreSQL running when stopping and resuming a worker.
 
 The shared prompt asks for tomorrow’s forecast for the listed cities. The agent determines the date through web search. Resuming continues from the saved checkpoint.
 

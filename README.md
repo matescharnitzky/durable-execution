@@ -26,7 +26,7 @@ make langgraph-run RUN_ID=report-1
 
 LangGraph stores checkpoints in `weather.langgraph` on `localhost:5432`; pgAdmin is available at [localhost:80](http://localhost:80).
 
-Reports are saved as `artifacts/report_langgraph_<UTC timestamp>.html`. Use a fresh run ID for each new execution. Set `OUTPUT=artifacts/custom.html` to choose a filename.
+Reports are saved as `artifacts/langgraph/report_langgraph_<UTC timestamp>.html`. Use a fresh run ID for each new execution. Set `OUTPUT=artifacts/custom.html` to choose a filename.
 
 Inspect or resume the same execution after stopping its worker:
 

@@ -28,7 +28,7 @@ def validate_report(result: dict) -> dict:
 def write_report(path: Path | None, report: dict, *, experiment: str) -> Path:
     generated = datetime.now(timezone.utc)
     if path is None:
-        path = Path("artifacts") / f"report_{experiment.lower()}_{generated:%Y%m%d_%H%M%S_%f}Z.html"
+        path = Path("artifacts") / experiment.lower() / f"report_{experiment.lower()}_{generated:%Y%m%d_%H%M%S_%f}Z.html"
     forecasts = report["forecasts"]
     rows = []
     for row in forecasts:
