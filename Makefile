@@ -1,4 +1,4 @@
-.PHONY: setup check postgres langgraph-run langgraph-status langgraph-resume
+.PHONY: setup check up down postgres langgraph-run langgraph-status langgraph-resume
 
 setup:
 	uv sync --locked --all-packages
@@ -7,17 +7,24 @@ setup:
 check:
 	uv run --locked --package weather-core python -m unittest discover -s core/tests
 
+UV_ENV_FILE := $(if $(wildcard .env),--env-file .env)
+
 RUN_ID ?= report-1
 OUTPUT ?= artifacts/report.html
 
-postgres:
-	docker compose up -d --wait postgres
+up:
+	@./scripts/1password.sh docker compose up -d --wait postgres
+
+down:
+	@./scripts/1password.sh docker compose down
+
+postgres: up
 
 langgraph-run: postgres
-	op run --env-file=.env -- uv run --locked langgraph-report run "$(RUN_ID)" --output "$(OUTPUT)"
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked langgraph-report run "$(RUN_ID)" --output "$(OUTPUT)"
 
 langgraph-status:
-	op run --env-file=.env -- uv run --locked langgraph-report status "$(RUN_ID)"
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked langgraph-report status "$(RUN_ID)"
 
 langgraph-resume: postgres
-	op run --env-file=.env -- uv run --locked langgraph-report resume "$(RUN_ID)" --output "$(OUTPUT)"
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked langgraph-report resume "$(RUN_ID)" --output "$(OUTPUT)"

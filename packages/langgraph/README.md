@@ -6,11 +6,11 @@ make langgraph-status
 make langgraph-resume
 ```
 
-Run and resume start PostgreSQL and wait for it to be ready. All three targets load credentials from `.env` through 1Password. The defaults are `RUN_ID=report-1` and `OUTPUT=artifacts/report.html`. Use a fresh ID for a new run, for example `make langgraph-run RUN_ID=report-2 OUTPUT=artifacts/report-2.html`. Pass the same `RUN_ID` to status and resume. To start only PostgreSQL, use `make postgres`.
+Run and resume start PostgreSQL and wait for it to be ready. All three targets load `.env` and resolve any 1Password references through `scripts/1password.sh`. The defaults are `RUN_ID=report-1` and `OUTPUT=artifacts/report.html`. Use a fresh ID for a new run, for example `make langgraph-run RUN_ID=report-2 OUTPUT=artifacts/report-2.html`. Pass the same `RUN_ID` to status and resume. Use `make up` to start PostgreSQL and `make down` to stop it while keeping its data.
 
 The shared prompt asks for tomorrow’s forecast for the listed cities. The agent determines the date through web search. Resuming continues from the saved checkpoint.
 
-The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_URL` if using different database settings. The `pgadmin` Compose profile exposes pgAdmin on port 55080. Wrap live CLI commands with the [root README's 1Password invocation](../../README.md#local-runtime-configuration).
+The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_URL` if using different database settings. The `pgadmin` Compose profile exposes pgAdmin on port 55080. See the [root README](../../README.md#local-runtime-configuration) for plain environment values and 1Password setup.
 
 Run the credential-free demo with `uv run --locked python tests/recovery/demo.py .venv/bin/langgraph-report --search-tool`. The fixture completes web search, then injects a fault during the final model call. After a worker kill, `resume` uses the original PostgreSQL thread ID and reuses the saved search result. The OpenAI client retries a one-time 429 or dropped connection within the same process.
 

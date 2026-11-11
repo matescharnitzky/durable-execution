@@ -25,7 +25,19 @@ The runtime integrations use their own OpenAI clients to call Responses with hos
 
 The CLI uses local Compose services where needed. LangGraph and DBOS use local PostgreSQL, with separate databases for their runtime state. Temporal uses a local server, and Pi Durable uses a local SQLite file. pgAdmin can be used to inspect PostgreSQL.
 
-For live runs, copy `.env.example` to the ignored `.env`. Replace each placeholder with the corresponding `op://` field reference from the `durable-execution` item in the 1Password Development vault. Use **Copy Secret Reference** in 1Password to get the exact field names. Run the relevant adapter command through `op run --env-file=.env -- <command>` to inject the resolved values only into that process. The OpenAI key covers both model calls and hosted web search.
+For live runs, copy `.env.example` to the ignored `.env`. Use plain values or `op://` field references from the `durable-execution` item in the 1Password Development vault. For references, install the 1Password CLI and enable its desktop app integration. Use **Copy Secret Reference** in 1Password to get the exact field names. The OpenAI key covers both model calls and hosted web search.
+
+```sh
+make up
+make langgraph-run RUN_ID=report-1
+make langgraph-status RUN_ID=report-1
+make langgraph-resume RUN_ID=report-1
+make down
+```
+
+The Make targets use `scripts/1password.sh` to resolve references when present. Plain `.env` values and exported environment variables work without 1Password. Run and resume also start PostgreSQL if needed. Stopping services preserves the database volume for recovery.
+
+To wrap another command directly, use `./scripts/1password.sh <command>`. For Python commands that should also load plain `.env` values, use `./scripts/1password.sh uv run --env-file .env --locked <command>`.
 
 ## Telemetry
 
