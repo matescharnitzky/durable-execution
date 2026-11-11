@@ -2,10 +2,12 @@
 
 ```sh
 docker compose up -d --wait postgres
-uv run --locked langgraph-report run report-1 --date YYYY-MM-DD --output artifacts/report.html
+uv run --locked langgraph-report run report-1 --output artifacts/report.html
 uv run --locked langgraph-report status report-1
 uv run --locked langgraph-report resume report-1 --output artifacts/report.html
 ```
+
+New runs request tomorrow’s forecast using the Europe/Budapest calendar date. Resuming keeps the forecast date stored with the original request.
 
 The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_URL` if using different database settings. The `pgadmin` Compose profile exposes pgAdmin on port 55080. Wrap live CLI commands with the [root README's 1Password invocation](../../README.md#local-runtime-configuration).
 
