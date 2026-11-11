@@ -1,0 +1,27 @@
+[project]
+name = "langgraph-report"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "weather-core",
+    "langchain>=1,<2",
+    "pydantic-settings>=2,<3",
+    "typer>=0.16,<1",
+    "langchain-openai>=1,<2",
+    "logfire>=5,<6",
+    "openai>=2,<3",
+    "langgraph>=1.0,<2",
+    "langgraph-checkpoint-postgres>=3,<4",
+    "psycopg[binary]>=3,<4",
+    "rich>=15,<16",
+]
+
+[project.scripts]
+langgraph-report = "langgraph_report.cli:app"
+
+[tool.uv.sources]
+weather-core = { workspace = true }
+
+[build-system]
+requires = ["uv_build==0.9.30"]
+build-backend = "uv_build"

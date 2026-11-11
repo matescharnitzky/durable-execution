@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:17-bookworm
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-weather}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-weather-local}
+      POSTGRES_DB: ${POSTGRES_DB:-weather}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/001-schemas.sql:ro
+
+  pgadmin:
+    image: dpage/pgadmin4:9.18
+    ports:
+      - "127.0.0.1:80:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?Set PGADMIN_EMAIL in .env}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Set PGADMIN_PASSWORD in .env}
+
+volumes:
+  postgres:
