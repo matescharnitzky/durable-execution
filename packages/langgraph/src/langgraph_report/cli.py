@@ -23,7 +23,7 @@ app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
 
 @contextmanager
-def report_agent(run_id: str, command: str):
+def report_runtime(run_id: str, command: str):
     settings = Settings()
     configure_telemetry(settings)
     with PostgresSaver.from_conn_string(settings.database_url) as saver:
@@ -57,7 +57,7 @@ def run(
     run_id: str,
     output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
-    with report_agent(run_id, "run") as (agent, config):
+    with report_runtime(run_id, "run") as (agent, config):
         if agent.get_state(config).values:
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
         result = agent.invoke(
@@ -73,7 +73,7 @@ def status(
     run_id: str,
     as_json: Annotated[bool, typer.Option("--json", help="Return machine-readable status")] = False,
 ) -> None:
-    with report_agent(run_id, "status") as (agent, config):
+    with report_runtime(run_id, "status") as (agent, config):
         state = agent.get_state(config)
         messages = state.values.get("messages", [])
         complete = bool(messages) and isinstance(messages[-1], AIMessage) and not state.next
@@ -117,7 +117,7 @@ def resume(
     run_id: str,
     output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
-    with report_agent(run_id, "resume") as (agent, config):
+    with report_runtime(run_id, "resume") as (agent, config):
         state = agent.get_state(config)
         if not state.values:
             raise typer.BadParameter("Unknown run ID.", param_hint="run_id")
