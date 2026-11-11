@@ -31,7 +31,7 @@ def langgraph_agent(run_id: str, command: str):
         if command != "status":
             saver.setup()
         agent = create_agent(
-            model=ChatOpenAI(model=settings.openai_model),
+            model=ChatOpenAI(model=settings.openai_model, model_kwargs={"parallel_tool_calls": False}),
             tools=[web_search],
             system_prompt=SYSTEM_PROMPT,
             checkpointer=saver,

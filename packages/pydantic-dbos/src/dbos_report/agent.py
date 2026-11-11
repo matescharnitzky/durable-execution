@@ -15,6 +15,7 @@ agent = Agent(
     name="dbos_weather",
     instructions=SYSTEM_PROMPT,
     output_type=NativeOutput(StructuredDict(REPORT_SCHEMA), strict=True),
+    model_settings={"parallel_tool_calls": False},
     tools=[web_search],
     capabilities=[
         DBOSDurability(),

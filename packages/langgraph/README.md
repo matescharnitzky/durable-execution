@@ -11,7 +11,7 @@ All three targets load `.env` and resolve any 1Password references through `scri
 
 `make langgraph-status RUN_ID=<id>` shows the saved turns in a terminal table, plus the current state and next node. Long message contents are shown as previews. Use `STATUS_ARGS=--json` for machine-readable status. The table is reconstructed from LangGraph’s persisted state, so an unfinished API call without a saved result will not appear as a completed turn.
 
-The shared prompt asks for tomorrow’s forecast for the listed cities. The agent determines the date through web search. Resuming continues from the saved checkpoint.
+The shared prompt asks the agent to check tomorrow’s date first, then research five cities in order, one city per search. Parallel tool calls are disabled, so each search result returns to the agent before its next call. Resuming continues from the saved checkpoint.
 
 The CLI uses `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` for the local Compose database on port 5432. The default database is `weather`; checkpoint tables live in its `langgraph` schema. Compose creates the schema when initializing a fresh database volume. `LANGGRAPH_DATABASE_URL` can override the connection; LangGraph still sets `search_path=langgraph`. pgAdmin is available at [localhost:80](http://localhost:80). In pgAdmin, register host `postgres`, port `5432`, and maintenance database `weather`, then browse **Schemas → langgraph → Tables**. See the [root README](../../README.md#setup) for plain environment values and 1Password setup.
 

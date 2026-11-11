@@ -13,7 +13,7 @@ from pydantic_ai.durable_exec.dbos import DBOSDurability
 from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart, ToolReturnPart
 from pydantic_ai.models.function import FunctionModel
 
-from dbos_report.agent import report
+from dbos_report.agent import agent as weather_agent, report
 from dbos_report.tools import web_search
 from weather_core.report import REPORT_SCHEMA
 
@@ -22,6 +22,7 @@ phase = os.environ["DBOS_TEST_PHASE"]
 
 
 async def model(messages, info):
+    assert info.model_settings["parallel_tool_calls"] is False
     assert [tool.name for tool in info.function_tools] == ["web_search"]
     results = [part for message in messages for part in message.parts if isinstance(part, ToolReturnPart)]
     if not results:
@@ -35,6 +36,7 @@ async def model(messages, info):
 
 test_agent = Agent(
     FunctionModel(model), name="dbos_replay_test", tools=[web_search],
+    model_settings=weather_agent.model_settings,
     output_type=NativeOutput(StructuredDict(REPORT_SCHEMA), strict=True),
     capabilities=[DBOSDurability()],
 )

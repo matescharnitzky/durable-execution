@@ -17,7 +17,7 @@ Plain values, exported variables, and `op://` references are supported. For 1Pas
 
 ## LangGraph
 
-Start PostgreSQL and pgAdmin, then generate tomorrow’s forecast for 20 cities:
+Start PostgreSQL and pgAdmin, then generate tomorrow’s forecast for five cities:
 
 ```sh
 make up
