@@ -14,7 +14,7 @@ make temporal-status RUN_ID=report-1
 make temporal-resume RUN_ID=report-1
 ```
 
-The shared prompt asks for tomorrow’s forecast for 20 cities. Pydantic AI uses native OpenAI web search, strict structured output, and `TemporalDurability()` with its default activity timeouts and retry policy. The core renderer exports `artifacts/temporal/report_temporal_<UTC timestamp>.html`; `OUTPUT` overrides the path.
+The shared prompt asks the agent to check tomorrow’s date first, then research five cities in order, one city per search. Parallel function calls are disabled through the model’s native setting. The main agent calls a `web_search` function tool, which makes a separate OpenAI hosted-search request. `TemporalDurability()` records main-agent model turns and function-tool calls as activities using its default timeouts and retry policy. Strict structured output feeds the core renderer, which exports `artifacts/temporal/report_temporal_<UTC timestamp>.html`; `OUTPUT` overrides the path.
 
 The local Temporal development server persists its native history to a Docker volume. Its API is on port 7233 and UI at [localhost:8233](http://localhost:8233). Its native SQLite store is separate from the PostgreSQL schemas used by LangGraph and DBOS. `TEMPORAL_ADDRESS` can override the server connection. `make down` removes the volume and workflow history.
 
@@ -28,7 +28,7 @@ Stop any separately started worker before running:
 
 The script starts a worker and client through Make, waits for a model activity to start, and asks when to kill both local process groups. Temporal and PostgreSQL stay running. After inspecting the native status table, press Enter to start a replacement worker and follow the original workflow. The script stops its replacement worker when finished. Credentials are resolved once and reused across its Make commands.
 
-Temporal resumes automatically once a worker is available and the server detects the old attempt’s timeout. The default model activity heartbeat timeout is 30 seconds, so replacement can take time. Completed activities are reused; a hosted search inside an unfinished model activity can run again. Killing only the CLI client does not kill the worker or cancel the workflow.
+Temporal resumes automatically once a worker is available and the server detects the old attempt’s timeout. The default model activity heartbeat timeout is 30 seconds, so replacement can take time. Completed model and search activities are reused; an unfinished search activity can run again. Killing only the CLI client does not kill the worker or cancel the workflow. Use fresh workflow IDs after changing the tool/activity structure; unfinished older workflows need their original code version.
 
 `status` shows native activity events, attempts, and saved result previews. `STATUS_ARGS=--json` returns machine-readable state. The demo uses real OpenAI calls and manual timing.
 
