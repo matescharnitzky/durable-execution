@@ -1,8 +1,7 @@
 import json
 from importlib.resources import files
 
-SYSTEM_PROMPT: str = json.loads(
-    files(__package__).joinpath("prompt.json").read_text(encoding="utf-8")
-)["system_prompt"]
+_prompts = json.loads(files(__package__).joinpath("prompt.json").read_text(encoding="utf-8"))
 
-WEB_SEARCH_INSTRUCTIONS = "Search public web pages for the query and cite their HTTP(S) URLs. Do not use weather widgets, internal reference IDs, or placeholder URLs as sources."
+SYSTEM_PROMPT: str = _prompts["system_prompt"]
+WEB_SEARCH_INSTRUCTIONS: str = _prompts["web_search_instructions"]

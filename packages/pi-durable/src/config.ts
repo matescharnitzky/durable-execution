@@ -8,5 +8,7 @@ export const settings = {
   stateDirectory: process.env.PI_STATE_DIR || "artifacts/pi/state",
 };
 
-export const systemPrompt: string = JSON.parse(readFileSync(new URL("prompt.json", core), "utf8")).system_prompt;
+const prompts = JSON.parse(readFileSync(new URL("prompt.json", core), "utf8"));
+export const systemPrompt: string = prompts.system_prompt;
+export const webSearchInstructions: string = prompts.web_search_instructions;
 export const reportSchema = JSON.parse(readFileSync(new URL("report_schema.json", core), "utf8"));

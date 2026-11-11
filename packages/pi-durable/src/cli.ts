@@ -3,11 +3,12 @@ import { mkdir, open, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { Command, Option } from "commander";
 import { BACKGROUND_CONTEXT as context } from "@earendil-works/chord/context";
-import { createRegistry, Harness } from "@earendil-works/pi-durable";
+import { createRegistry, defineExtension, Harness } from "@earendil-works/pi-durable";
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 
 import { settings, systemPrompt } from "./config.ts";
-import { forecastModels, modelRef } from "./provider.ts";
+import { openaiModels, modelRef } from "./provider.ts";
+import { webSearch } from "./tools.ts";
 import { logfireTelemetry } from "./telemetry.ts";
 
 const requestId = "weather-report";
@@ -30,8 +31,10 @@ export async function report(command: string, runId: string, options: { output?:
   }
   const telemetry = command === "status" ? undefined : logfireTelemetry(runId);
   const storage = await openNodeSqliteStorage(database);
+  const registry = createRegistry();
+  registry.install(defineExtension({ name: "weather", tools: [webSearch] }));
   const harness = await Harness.open(storage, {
-    models: forecastModels(), registry: createRegistry(),
+    models: openaiModels(), registry, settings: { toolExecution: "sequential" },
     readOnly: command === "status", telemetry: telemetry?.context,
   }, context);
   try {
