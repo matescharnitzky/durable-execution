@@ -1,8 +1,9 @@
 import json
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 import typer
 from langchain.agents import create_agent
@@ -54,14 +55,14 @@ def save_report(output: Path, messages) -> None:
 @app.command()
 def run(
     run_id: str,
-    forecast_date: Annotated[datetime, typer.Option("--date", formats=["%Y-%m-%d"])],
     output: Annotated[Path, typer.Option("--output")],
     fixture: Annotated[bool, typer.Option(help="Use the two fixture cities")] = False,
 ) -> None:
     with report_agent(run_id, "run") as (agent, config):
         if agent.get_state(config).values:
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
-        request = {"forecast_date": forecast_date.date().isoformat(), "cities": report_cities(fixture)}
+        tomorrow = datetime.now(ZoneInfo("Europe/Budapest")).date() + timedelta(days=1)
+        request = {"forecast_date": tomorrow.isoformat(), "cities": report_cities(fixture)}
         result = agent.invoke({"messages": [HumanMessage(json.dumps(request))]}, config, durability="sync")
         save_report(output, result["messages"])
 
