@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:17-bookworm
     ports:
-      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-weather}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-weather-local}
@@ -14,15 +14,15 @@ services:
       retries: 30
     volumes:
       - postgres:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/001-schemas.sql:ro
 
   pgadmin:
     image: dpage/pgadmin4:9.18
-    profiles: [pgadmin]
     ports:
-      - "127.0.0.1:55080:80"
+      - "127.0.0.1:80:80"
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-weather@example.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-weather-local}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?Set PGADMIN_EMAIL in .env}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Set PGADMIN_PASSWORD in .env}
 
   temporal:
     image: temporalio/temporal:1.6.1

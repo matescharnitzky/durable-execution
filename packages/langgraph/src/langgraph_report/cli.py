@@ -1,21 +1,23 @@
 import json
 from contextlib import contextmanager
-from datetime import datetime, timedelta
 from pathlib import Path
+from textwrap import shorten
 from typing import Annotated
-from zoneinfo import ZoneInfo
 
 import typer
 from langchain.agents import create_agent
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.postgres import PostgresSaver
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
 
 from langgraph_report.config import Settings
 from langgraph_report.observability import configure_telemetry
-from langgraph_report.prompts import REPORT_PROMPT
-from langgraph_report.report import report_cities, validate_report, write_report
 from langgraph_report.tools import web_search
+from weather_core.prompts import SYSTEM_PROMPT
+from weather_core.report import validate_report, write_report
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
@@ -29,9 +31,8 @@ def report_agent(run_id: str, command: str):
         agent = create_agent(
             model=ChatOpenAI(model=settings.openai_model),
             tools=[web_search],
-            system_prompt=REPORT_PROMPT,
+            system_prompt=SYSTEM_PROMPT,
             checkpointer=saver,
-            name="Weather report",
         )
         config = {
             "configurable": {"thread_id": run_id},
@@ -44,46 +45,77 @@ def report_agent(run_id: str, command: str):
         yield agent, config
 
 
-def save_report(output: Path, messages) -> None:
-    request = json.loads(messages[0].text)
+def save_report(output: Path | None, messages) -> None:
     answer = messages[-1].text.strip().removeprefix("```json").removesuffix("```").strip()
-    report = validate_report(json.loads(answer), request["forecast_date"], request["cities"])
-    write_report(output, [report])
-    typer.echo(f"Report saved to {output.resolve()}", err=True)
+    report = validate_report(json.loads(answer))
+    path = write_report(output, report, experiment="LangGraph")
+    typer.echo(f"Report saved to {path.resolve()}", err=True)
 
 
 @app.command()
 def run(
     run_id: str,
-    output: Annotated[Path, typer.Option("--output")],
-    fixture: Annotated[bool, typer.Option(help="Use the two fixture cities")] = False,
+    output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
     with report_agent(run_id, "run") as (agent, config):
         if agent.get_state(config).values:
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
-        tomorrow = datetime.now(ZoneInfo("Europe/Budapest")).date() + timedelta(days=1)
-        request = {"forecast_date": tomorrow.isoformat(), "cities": report_cities(fixture)}
-        result = agent.invoke({"messages": [HumanMessage(json.dumps(request))]}, config, durability="sync")
+        result = agent.invoke(
+            {"messages": [HumanMessage("Generate the weather report.")]},
+            config,
+            durability="sync", # it saves the checkpoint before the next step starts. Async would save the previous step and run the next at the same time. 
+        )
         save_report(output, result["messages"])
 
 
 @app.command()
-def status(run_id: str) -> None:
+def status(
+    run_id: str,
+    as_json: Annotated[bool, typer.Option("--json", help="Return machine-readable status")] = False,
+) -> None:
     with report_agent(run_id, "status") as (agent, config):
         state = agent.get_state(config)
         messages = state.values.get("messages", [])
         complete = bool(messages) and isinstance(messages[-1], AIMessage) and not state.next
-        typer.echo(json.dumps({
+        summary = {
             "run_id": run_id,
             "state": ("complete" if complete else "pending") if state.values else "unknown",
             "next": list(state.next),
-        }))
+        }
+        if as_json:
+            typer.echo(json.dumps(summary))
+            return
+
+        console = Console()
+        console.print(f"Run: {run_id}", markup=False)
+        console.print(f"State: {summary['state']} · Next: {', '.join(state.next) or '—'}", markup=False)
+        if not messages:
+            console.print("No saved turns.")
+            return
+
+        table = Table(title="Turns saved in PostgreSQL", header_style="bold cyan")
+        table.add_column("Turn", justify="right")
+        table.add_column("Type")
+        table.add_column("Saved content", max_width=96)
+        for number, message in enumerate(messages, start=1):
+            kind = "User" if isinstance(message, HumanMessage) else "Model"
+            content = message.text
+            if isinstance(message, AIMessage) and message.tool_calls:
+                kind = "Model → tool"
+                content = f"{len(message.tool_calls)} tool call(s): " + "\n".join(
+                    f"{call['name']}({json.dumps(call['args'], ensure_ascii=False)})"
+                    for call in message.tool_calls
+                )
+            elif isinstance(message, ToolMessage):
+                kind = f"Tool: {message.name or 'result'}"
+            table.add_row(str(number), Text(kind), Text(shorten(content, width=240, placeholder="…")))
+        console.print(table)
 
 
 @app.command()
 def resume(
     run_id: str,
-    output: Annotated[Path, typer.Option("--output")],
+    output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
     with report_agent(run_id, "resume") as (agent, config):
         state = agent.get_state(config)

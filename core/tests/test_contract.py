@@ -1,22 +1,18 @@
 import json
 import unittest
 from importlib.resources import files
+from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-FIXTURES = files("weather_core").joinpath("fixtures")
+CORE = files("weather_core")
+TESTS = Path(__file__).parent
 
 
 class ReportContractTest(unittest.TestCase):
-    def test_live_workload_has_four_batches_of_five_distinct_cities(self):
-        batches = json.loads(FIXTURES.joinpath("cities.json").read_text(encoding="utf-8"))
-
-        self.assertEqual([len(batch) for batch in batches], [5, 5, 5, 5])
-        self.assertEqual(len({city for batch in batches for city in batch}), 20)
-
     def test_sample_report_matches_contract(self):
-        schema = json.loads(FIXTURES.joinpath("report.schema.json").read_text(encoding="utf-8"))
-        report = json.loads(FIXTURES.joinpath("report.json").read_text(encoding="utf-8"))
+        schema = json.loads(CORE.joinpath("report_schema.json").read_text(encoding="utf-8"))
+        report = json.loads(TESTS.joinpath("report.json").read_text(encoding="utf-8"))
 
         Draft202012Validator.check_schema(schema)
         Draft202012Validator(
