@@ -23,8 +23,8 @@ agent = Agent(
 
 
 @DBOS.workflow()
-async def report(run_id: str) -> dict:
-    result = await agent.run(
+def report(run_id: str) -> dict:
+    result = agent.run_sync(
         "Generate the weather report.",
         metadata={"durable.runtime": "dbos", "durable.run_id": run_id},
     )
