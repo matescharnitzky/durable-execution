@@ -27,10 +27,7 @@ def report_agent(run_id: str, command: str):
         agent = create_agent(
             model=ChatOpenAI(model=settings.openai_model),
             tools=[web_search],
-            system_prompt=(
-                "Call web_search to collect forecasts and source URLs before writing the report. "
-                + SYSTEM_PROMPT
-            ),
+            system_prompt=SYSTEM_PROMPT,
             checkpointer=saver,
             name="Weather report",
         )
