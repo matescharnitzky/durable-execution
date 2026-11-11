@@ -1,15 +1,15 @@
 # Recovery comparison
 
-Every implementation receives the same prompt for tomorrow’s forecasts for 20 cities. Native runtime storage owns unfinished executions. The core package validates the final report and renders the same HTML under `artifacts/<experiment>/`.
+Every implementation receives the same prompt: check tomorrow’s date, then research Budapest, Vienna, Prague, Warsaw, and Berlin in order, one city per search. LangGraph, DBOS, and Temporal disable parallel function calls through the model’s native setting, returning each result to the agent before its next search. Native runtime storage owns unfinished executions. The core package validates the final report and renders the same HTML under `artifacts/<experiment>/`.
 
 | Runtime | Native store and recovery unit | What an interrupted execution can reuse | Verification of this implementation |
 |---|---|---|---|
 | LangGraph | PostgreSQL `weather.langgraph`; graph checkpoints and pending task writes | Saved messages and completed model/tool results. An unfinished node can run again. | Live report and local process crash/resume verified. |
 | Pydantic AI + DBOS | PostgreSQL `weather.dbos`; workflow, model turns, and `web_search` function steps | Completed model turns and search results during workflow replay. An unfinished search step can repeat. | Live SIGKILL recovery verified; two completed searches were reused without new search calls. |
-| Pydantic AI + Temporal | Persisted local Temporal server; workflow history and activities | Completed activity results during deterministic replay. The server times out a lost worker’s activity and retries it. | Live report and worker replacement verified; native history showed model activity attempt 2. |
+| Pydantic AI + Temporal | Persisted local Temporal server; workflow history, model activities, and function-tool activities | Completed model turns and search results during deterministic replay. The server times out a lost worker’s activity and retries it. | Live report and worker replacement verified; native history showed model activity attempt 2. |
 | Pi Durable | Native SQLite per run; submissions, generation tasks, and transcript entries | The original submission and committed transcript. A model request interrupted by a crash is retried; completed submissions reuse their saved answer. | Live OpenAI report and SIGKILL recovery verified; the original submission completed on generation attempt 2. Completed-answer export also succeeded with an unreachable provider URL. |
 
-The implementations expose their normal framework boundaries. LangGraph and DBOS use function tools that call OpenAI hosted search. DBOS marks that function with `@DBOS.step()`, while its main-agent model turns use Pydantic AI’s native durability integration. Temporal uses OpenAI’s native search tool within a model request. Pi adds that native tool through its supported Responses payload hook. A hosted search action is not necessarily its own durable runtime step.
+LangGraph, DBOS, and Temporal use function tools that call OpenAI hosted search. DBOS marks that function with `@DBOS.step()`, while Temporal’s native Pydantic AI integration automatically wraps function tools as activities. Main-agent model turns have their own framework persistence. Pi adds hosted search through its supported Responses payload hook, within one model request. A hosted search action is not necessarily its own durable runtime step.
 
 ## Run the demos
 

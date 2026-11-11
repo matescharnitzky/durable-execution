@@ -6,7 +6,7 @@ make pi-status RUN_ID=report-1
 make pi-resume RUN_ID=report-1
 ```
 
-Pi uses a local SQLite file per run under `artifacts/pi/state/`; it does not need Docker. The shared prompt asks for tomorrow’s forecast for 20 cities. All implementations use the same core schema and HTML renderer. Pi passes its final JSON to the core Python CLI and saves `artifacts/pi/report_pi_<UTC timestamp>.html`. `OUTPUT` overrides the filename.
+Pi uses a local SQLite file per run under `artifacts/pi/state/`; it does not need Docker. The shared prompt asks for a date check followed by tomorrow’s forecasts for five cities, one city at a time. Pi’s hosted search still runs inside a single durable model request. All implementations use the same core schema and HTML renderer. Pi passes its final JSON to the core Python CLI and saves `artifacts/pi/report_pi_<UTC timestamp>.html`. `OUTPUT` overrides the filename.
 
 The pinned Pi AI Responses adapter has no first-class hosted web-search option. `provider.ts` uses its supported `onPayload` hook to add OpenAI’s native search tool and strict JSON schema. OpenAI rejects the schema’s `uri` format, so the request omits that keyword; core still validates URLs against the full schema. It preserves the original transcript and native default retry settings. `config.ts` owns the model setting and reads the same prompt and schema resources as Python.
 
