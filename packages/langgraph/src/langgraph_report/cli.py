@@ -60,7 +60,7 @@ def run(
         result = agent.invoke(
             {"messages": [HumanMessage("Generate the weather report.")]},
             config,
-            durability="sync",
+            durability="sync", # it saves the checkpoint before the next step starts. Async would save the previous step and run the next at the same time. 
         )
         save_report(output, result["messages"])
 
