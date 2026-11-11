@@ -7,6 +7,7 @@ setup:
 check:
 	uv run --locked --package weather-core python -m unittest discover -s core/tests
 	uv run --locked --package langgraph-report python -m unittest discover -s packages/langgraph/tests
+	uv run --locked --package dbos-report python -m unittest discover -s packages/pydantic-dbos/tests
 	npm exec --workspace @durable-execution/pi-durable -- tsc --noEmit
 	node --test packages/pi-durable/tests/recovery.test.mjs
 
