@@ -16,15 +16,15 @@ up:
 	@./scripts/1password.sh docker compose up -d --wait postgres
 
 down:
-	@./scripts/1password.sh docker compose down
+	@./scripts/1password.sh docker compose down --volumes
 
 postgres: up
 
-langgraph-run: postgres
+langgraph-run:
 	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked langgraph-report run "$(RUN_ID)" --output "$(OUTPUT)"
 
 langgraph-status:
 	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked langgraph-report status "$(RUN_ID)"
 
-langgraph-resume: postgres
+langgraph-resume:
 	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked langgraph-report resume "$(RUN_ID)" --output "$(OUTPUT)"

@@ -1,12 +1,13 @@
 # LangGraph with PostgreSQL
 
 ```sh
+make up
 make langgraph-run
 make langgraph-status
 make langgraph-resume
 ```
 
-Run and resume start PostgreSQL and wait for it to be ready. All three targets load `.env` and resolve any 1Password references through `scripts/1password.sh`. The defaults are `RUN_ID=report-1` and `OUTPUT=artifacts/report.html`. Use a fresh ID for a new run, for example `make langgraph-run RUN_ID=report-2 OUTPUT=artifacts/report-2.html`. Pass the same `RUN_ID` to status and resume. Use `make up` to start PostgreSQL and `make down` to stop it while keeping its data.
+All three targets load `.env` and resolve any 1Password references through `scripts/1password.sh`. The defaults are `RUN_ID=report-1` and `OUTPUT=artifacts/report.html`. Use a fresh ID for a new run, for example `make langgraph-run RUN_ID=report-2 OUTPUT=artifacts/report-2.html`. Pass the same `RUN_ID` to status and resume. Use `make up` to start PostgreSQL. `make down` removes the containers and database volume, including saved checkpoints. Keep PostgreSQL running when stopping and resuming a worker.
 
 The shared prompt asks for tomorrow’s forecast for the listed cities. The agent determines the date through web search. Resuming continues from the saved checkpoint.
 

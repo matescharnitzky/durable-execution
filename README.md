@@ -35,7 +35,7 @@ make langgraph-resume RUN_ID=report-1
 make down
 ```
 
-The Make targets use `scripts/1password.sh` to resolve references when present. Plain `.env` values and exported environment variables work without 1Password. Run and resume also start PostgreSQL if needed. Stopping services preserves the database volume for recovery.
+The Make targets use `scripts/1password.sh` to resolve references when present. Plain `.env` values and exported environment variables work without 1Password. Start PostgreSQL with `make up` before running the report commands. `make down` removes the containers and database volume, including saved checkpoints. Keep PostgreSQL running while testing worker crash recovery.
 
 To wrap another command directly, use `./scripts/1password.sh <command>`. For Python commands that should also load plain `.env` values, use `./scripts/1password.sh uv run --env-file .env --locked <command>`.
 
