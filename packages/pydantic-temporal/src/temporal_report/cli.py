@@ -1,68 +1,63 @@
 import asyncio
 import json
+from contextlib import contextmanager
 from pathlib import Path
 from textwrap import shorten
 from typing import Annotated
 
 import logfire
 import typer
-from pydantic_ai.durable_exec.temporal import PydanticAIPlugin
+from pydantic_ai.durable_exec.temporal import LogfirePlugin, PydanticAIPlugin
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 from temporalio.client import Client
 from temporalio.common import WorkflowIDReusePolicy
-from temporalio.contrib.opentelemetry import TracingInterceptor
 from temporalio.service import RPCError, RPCStatusCode
 from temporalio.worker import Worker
 
 from temporal_report.config import Settings
+from temporal_report.observability import configure_telemetry
 from temporal_report.workflow import WeatherReport
 from weather_core.report import write_report
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
 
-def configure_telemetry() -> None:
-    settings = Settings()
-    logfire.configure(service_name="temporal-report", send_to_logfire=settings.logfire_token is not None, console=False)
+@contextmanager
+def temporal_runtime():
+    with asyncio.Runner() as runner:
+        try:
+            client = runner.run(Client.connect(
+                Settings().temporal_address,
+                plugins=[PydanticAIPlugin(), LogfirePlugin(setup_logfire=configure_telemetry, metrics=False)],
+            ))
+            yield client, runner
+        finally:
+            logfire.force_flush()
 
 
-async def connect() -> Client:
-    return await Client.connect(
-        Settings().temporal_address, plugins=[PydanticAIPlugin()], interceptors=[TracingInterceptor()],
-    )
-
-
-async def export(run_id: str, output: Path | None, *, start: bool) -> None:
-    client = await connect()
-    with logfire.span("Temporal report", **{"durable.runtime": "temporal", "durable.run_id": run_id}):
-        if start:
-            handle = await client.start_workflow(
-                WeatherReport.run, id=run_id, task_queue=Settings().temporal_task_queue,
-                id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
-            )
-        else:
-            handle = client.get_workflow_handle(run_id)
-        result = await handle.result()
+@app.command()
+def run(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
+    with temporal_runtime() as (client, runner):
+        handle = runner.run(client.start_workflow(
+            WeatherReport.run, id=run_id, task_queue=Settings().temporal_task_queue,
+            id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
+        ))
+        result = runner.run(handle.result())
         path = write_report(output, result, experiment="Temporal")
         typer.echo(f"Report saved to {path.resolve()}", err=True)
 
 
 @app.command()
-def run(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
-    configure_telemetry()
-    asyncio.run(export(run_id, output, start=True))
-
-
-@app.command()
 def resume(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
-    configure_telemetry()
-    asyncio.run(export(run_id, output, start=False))
+    with temporal_runtime() as (client, runner):
+        result = runner.run(client.get_workflow_handle(run_id).result())
+        path = write_report(output, result, experiment="Temporal")
+        typer.echo(f"Report saved to {path.resolve()}", err=True)
 
 
-async def inspect(run_id: str, as_json: bool) -> None:
-    client = await connect()
+async def inspect(client: Client, run_id: str, as_json: bool) -> None:
     handle = client.get_workflow_handle(run_id)
     try:
         description = await handle.describe()
@@ -110,16 +105,15 @@ async def inspect(run_id: str, as_json: bool) -> None:
 
 @app.command()
 def status(run_id: str, as_json: Annotated[bool, typer.Option("--json")] = False) -> None:
-    configure_telemetry()
-    asyncio.run(inspect(run_id, as_json))
+    with temporal_runtime() as (client, runner):
+        runner.run(inspect(client, run_id, as_json))
 
 
-async def run_worker() -> None:
-    client = await connect()
+async def run_worker(client: Client) -> None:
     await Worker(client, task_queue=Settings().temporal_task_queue, workflows=[WeatherReport]).run()
 
 
 @app.command()
 def worker() -> None:
-    configure_telemetry()
-    asyncio.run(run_worker())
+    with temporal_runtime() as (client, runner):
+        runner.run(run_worker(client))

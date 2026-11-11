@@ -1,7 +1,5 @@
 from pydantic_ai import Agent, NativeOutput, StructuredDict
-from pydantic_ai.capabilities import Instrumentation
 from pydantic_ai.durable_exec.temporal import TemporalDurability
-from pydantic_ai.models.instrumented import InstrumentationSettings
 
 from temporal_report.config import Settings
 from temporal_report.tools import web_search
@@ -18,6 +16,5 @@ agent = Agent(
     model_settings={"parallel_tool_calls": False},
     capabilities=[
         TemporalDurability(),
-        Instrumentation(InstrumentationSettings(include_content=False)),
     ],
 )

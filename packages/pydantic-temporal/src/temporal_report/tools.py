@@ -1,7 +1,6 @@
 from pydantic_ai import Agent, WebSearchTool
-from pydantic_ai.capabilities import Instrumentation, NativeTool
+from pydantic_ai.capabilities import NativeTool
 from pydantic_ai.messages import TextPart, WebCitationSource
-from pydantic_ai.models.instrumented import InstrumentationSettings
 
 from temporal_report.config import Settings
 from weather_core.prompts import WEB_SEARCH_INSTRUCTIONS
@@ -13,7 +12,6 @@ search_agent = Agent(
     instructions=WEB_SEARCH_INSTRUCTIONS,
     capabilities=[
         NativeTool(WebSearchTool()),
-        Instrumentation(InstrumentationSettings(include_content=False)),
     ],
 )
 
