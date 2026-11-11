@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:17-bookworm
     ports:
-      - "127.0.0.1:55432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-weather}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-weather-local}
@@ -18,7 +18,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4:9.18
     ports:
-      - "127.0.0.1:55080:80"
+      - "127.0.0.1:80:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?Set PGADMIN_EMAIL in .env}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Set PGADMIN_PASSWORD in .env}

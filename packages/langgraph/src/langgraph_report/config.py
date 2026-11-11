@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     def database_url(self) -> str:
         return self.langgraph_database_url or make_conninfo(
             host="127.0.0.1",
-            port=55432,
+            port=5432,
             dbname=self.postgres_db,
             user=self.postgres_user,
             password=self.postgres_password.get_secret_value(),
