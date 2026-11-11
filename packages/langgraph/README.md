@@ -7,7 +7,7 @@ uv run --locked langgraph-report status report-1
 uv run --locked langgraph-report resume report-1 --output artifacts/report.html
 ```
 
-New runs request tomorrow’s forecast using the Europe/Budapest calendar date. Resuming keeps the forecast date stored with the original request.
+The shared prompt asks for tomorrow’s forecast for the listed cities. The agent determines the date through web search. Resuming continues from the saved checkpoint.
 
 The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_URL` if using different database settings. The `pgadmin` Compose profile exposes pgAdmin on port 55080. Wrap live CLI commands with the [root README's 1Password invocation](../../README.md#local-runtime-configuration).
 

@@ -1,7 +1,6 @@
 """Forecast validation and HTML output for the LangGraph adapter."""
 
 import json
-import os
 from html import escape
 from importlib.resources import files
 from pathlib import Path
@@ -16,17 +15,8 @@ VALIDATOR = Draft202012Validator(
 )
 
 
-def fixture_cities() -> list[str]:
-    """Read the fixture input supplied by the recovery demo."""
-    return json.loads(os.environ["DURABLE_FIXTURE_CITIES"])
-
-
-def validate_report(result: dict, forecast_date: str, cities: list[str] | None = None) -> dict:
+def validate_report(result: dict) -> dict:
     VALIDATOR.validate(result)
-    if result["forecast_date"] != forecast_date:
-        raise ValueError("Forecast date does not match the request")
-    if cities is not None and [row["city"] for row in result["forecasts"]] != cities:
-        raise ValueError("Forecast cities do not match the requested order")
     if any(row["low_c"] > row["high_c"] for row in result["forecasts"]):
         raise ValueError("Forecast low exceeds its high")
     return result

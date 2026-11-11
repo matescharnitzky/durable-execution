@@ -1,9 +1,7 @@
 import json
 from contextlib import contextmanager
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Annotated
-from zoneinfo import ZoneInfo
 
 import typer
 from langchain.agents import create_agent
@@ -13,7 +11,7 @@ from langgraph.checkpoint.postgres import PostgresSaver
 
 from langgraph_report.config import Settings
 from langgraph_report.observability import configure_telemetry
-from langgraph_report.report import fixture_cities, validate_report, write_report
+from langgraph_report.report import validate_report, write_report
 from langgraph_report.tools import web_search
 from weather_core.prompts import SYSTEM_PROMPT
 
@@ -48,9 +46,8 @@ def report_agent(run_id: str, command: str):
 
 
 def save_report(output: Path, messages) -> None:
-    request = json.loads(messages[0].text)
     answer = messages[-1].text.strip().removeprefix("```json").removesuffix("```").strip()
-    report = validate_report(json.loads(answer), request["forecast_date"], request.get("cities"))
+    report = validate_report(json.loads(answer))
     write_report(output, [report])
     typer.echo(f"Report saved to {output.resolve()}", err=True)
 
@@ -59,16 +56,15 @@ def save_report(output: Path, messages) -> None:
 def run(
     run_id: str,
     output: Annotated[Path, typer.Option("--output")],
-    fixture: Annotated[bool, typer.Option(help="Use the two fixture cities")] = False,
 ) -> None:
     with report_agent(run_id, "run") as (agent, config):
         if agent.get_state(config).values:
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
-        tomorrow = datetime.now(ZoneInfo("Europe/Budapest")).date() + timedelta(days=1)
-        request = {"forecast_date": tomorrow.isoformat()}
-        if fixture:
-            request["cities"] = fixture_cities()
-        result = agent.invoke({"messages": [HumanMessage(json.dumps(request))]}, config, durability="sync")
+        result = agent.invoke(
+            {"messages": [HumanMessage("Generate the weather report.")]},
+            config,
+            durability="sync",
+        )
         save_report(output, result["messages"])
 
 

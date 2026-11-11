@@ -10,8 +10,6 @@ import sys
 import tempfile
 import threading
 import uuid
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -21,11 +19,6 @@ FIXTURE = Path(__file__).resolve().parents[2] / "core/tests/report.json"
 
 def scenario(command: list[str], fault: str, worker: list[str] | None, search_tool: bool = False) -> dict:
     report = json.loads(FIXTURE.read_text())
-    forecast_date = (
-        (datetime.now(ZoneInfo("Europe/Budapest")).date() + timedelta(days=1)).isoformat()
-        if search_tool else FIXTURE_DATE
-    )
-    report["forecast_date"] = forecast_date
     requests = []
     request_held = threading.Event()
     release = threading.Event()
@@ -48,11 +41,15 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
                 request_input = next(item["content"] for item in request_input if item.get("role") == "user")
             if isinstance(request_input, list):
                 request_input = next(part["text"] for part in request_input if part["type"] == "input_text")
-            forecast = json.loads(request_input)
-            assert forecast["forecast_date"] == forecast_date
-            cities = forecast["cities"]
             if search_tool:
-                assert cities == [row["city"] for row in report["forecasts"]]
+                cities = [row["city"] for row in report["forecasts"]]
+                query = "Find tomorrow’s weather forecasts for the cities in the report."
+                if completions:
+                    assert request_input == "Generate the weather report."
+                    system_prompt = next(item["content"] for item in body["messages"] if item["role"] == "system")
+                    assert "tomorrow" in system_prompt and "Budapest, Hungary" in system_prompt
+                else:
+                    assert request_input == query
                 request_key = "step"
                 if hosted_search:
                     request_number = "search"
@@ -65,6 +62,9 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
                 result = report
                 inject_fault = request_number == "answer"
             else:
+                forecast = json.loads(request_input)
+                assert forecast["forecast_date"] == FIXTURE_DATE
+                cities = forecast["cities"]
                 assert hosted_search
                 city, = cities
                 request_key = "batch"
@@ -105,7 +105,7 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
                 items = [{
                     "id": "fc_fixture", "type": "function_call", "status": "completed",
                     "call_id": "call_fixture", "name": "web_search",
-                    "arguments": json.dumps({"query": json.dumps(forecast)}),
+                    "arguments": json.dumps({"query": query}),
                 }]
             else:
                 items = [message]
@@ -132,7 +132,7 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
                             "id": "call_fixture", "type": "function",
                             "function": {
                                 "name": "web_search",
-                                "arguments": json.dumps({"query": json.dumps(forecast)}),
+                                "arguments": json.dumps({"query": query}),
                             },
                         }],
                     }
@@ -162,7 +162,6 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
     env = os.environ | {
         "OPENAI_BASE_URL": f"http://127.0.0.1:{server.server_port}/v1",
         "OPENAI_API_KEY": "fixture",
-        "DURABLE_FIXTURE_CITIES": json.dumps([row["city"] for row in report["forecasts"]]),
         "LOGFIRE_TOKEN": "",
     }
     run_id = f"demo-{fault}-{uuid.uuid4().hex}"
@@ -173,9 +172,9 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
             output = Path(directory) / "weather.html"
             if worker:
                 worker_process = subprocess.Popen(worker, env=env)
-            args = ["run", run_id, "--fixture", "--output", str(output)]
+            args = ["run", run_id, "--output", str(output)]
             if not search_tool:
-                args.extend(["--date", FIXTURE_DATE])
+                args.extend(["--fixture", "--date", FIXTURE_DATE])
             process = subprocess.Popen([*command, *args], env=env, stdout=sys.stderr)
             if fault == "crash":
                 if not request_held.wait(90):
