@@ -70,6 +70,9 @@ def status(run_id: str, as_json: Annotated[bool, typer.Option("--json")] = False
             return
         console = Console()
         console.print(f"Run: {run_id}\nState: {state} · DBOS: {native}", markup=False)
+        if not steps:
+            console.print("No completed steps saved yet.")
+            return
         table = Table(title="Steps saved in PostgreSQL", header_style="bold cyan")
         table.add_column("Step", justify="right")
         table.add_column("Function")
