@@ -11,13 +11,13 @@ make setup
 make check
 ```
 
-The smoke check verifies the city list and sample report against the shared contract. It runs without Docker or provider credentials. GitHub Actions uses the same commands.
+The smoke check verifies the test report against the report schema. It runs without Docker or provider credentials. GitHub Actions uses the same commands.
 
 For Codex Cloud, create an environment for `matescharnitzky/durable-execution` using those Node and uv versions. Set the setup script to `make setup`. Run `make check` in a fresh task on the branch you want to verify. Dependency installation needs access to the Python and npm package registries. The checked-in Codex environment also exposes setup and check actions for local worktrees.
 
 ## Report contract
 
-The JSON files under [core fixtures](core/src/weather_core/fixtures) are shared by Python and TypeScript. The live workload takes an explicit ISO date and covers 20 cities. LangGraph uses a web search tool before generating the full report. DBOS, Temporal, and Pi use four batches of five. Each forecast includes the city, low and high temperatures in Celsius, conditions, and clickable source links. Render a single HTML report with the forecast date, summary, and one forecast per requested city in input order. Escape forecast text and citation labels before rendering.
+Core holds the system prompt and report schema. Test data lives under `core/tests/fixtures`. The live workload covers 20 cities and requests tomorrow’s forecast. The prompt includes the city list. LangGraph uses a web search tool before generating the full report. DBOS, Temporal, and Pi use four batches of five. Each forecast includes the city, low and high temperatures in Celsius, conditions, and clickable source links. Render a single HTML report with the forecast date, summary, and one forecast per requested city in input order. Escape forecast text and citation labels before rendering.
 
 The runtime integrations use their own OpenAI clients to call Responses with hosted web search for live forecasts. The runtime owns persistence for unfinished work. The fault-injection endpoint's request log serves as evidence alongside native runtime history.
 

@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 FIXTURE_DATE = "2027-01-15"
-FIXTURE = Path(__file__).resolve().parents[2] / "core/src/weather_core/fixtures/report.json"
+FIXTURE = Path(__file__).resolve().parents[2] / "core/tests/fixtures/report.json"
 
 
 def scenario(command: list[str], fault: str, worker: list[str] | None, search_tool: bool = False) -> dict:
@@ -162,6 +162,7 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
     env = os.environ | {
         "OPENAI_BASE_URL": f"http://127.0.0.1:{server.server_port}/v1",
         "OPENAI_API_KEY": "fixture",
+        "DURABLE_FIXTURE_CITIES": json.dumps([row["city"] for row in report["forecasts"]]),
         "LOGFIRE_TOKEN": "",
     }
     run_id = f"demo-{fault}-{uuid.uuid4().hex}"

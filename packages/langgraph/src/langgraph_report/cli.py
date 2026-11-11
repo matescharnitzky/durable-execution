@@ -13,9 +13,9 @@ from langgraph.checkpoint.postgres import PostgresSaver
 
 from langgraph_report.config import Settings
 from langgraph_report.observability import configure_telemetry
-from langgraph_report.prompts import REPORT_PROMPT
-from langgraph_report.report import report_cities, validate_report, write_report
+from langgraph_report.report import fixture_cities, validate_report, write_report
 from langgraph_report.tools import web_search
+from weather_core.prompts import SYSTEM_PROMPT
 
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
@@ -29,7 +29,10 @@ def report_agent(run_id: str, command: str):
         agent = create_agent(
             model=ChatOpenAI(model=settings.openai_model),
             tools=[web_search],
-            system_prompt=REPORT_PROMPT,
+            system_prompt=(
+                "Call web_search to collect forecasts and source URLs before writing the report. "
+                + SYSTEM_PROMPT
+            ),
             checkpointer=saver,
             name="Weather report",
         )
@@ -47,7 +50,7 @@ def report_agent(run_id: str, command: str):
 def save_report(output: Path, messages) -> None:
     request = json.loads(messages[0].text)
     answer = messages[-1].text.strip().removeprefix("```json").removesuffix("```").strip()
-    report = validate_report(json.loads(answer), request["forecast_date"], request["cities"])
+    report = validate_report(json.loads(answer), request["forecast_date"], request.get("cities"))
     write_report(output, [report])
     typer.echo(f"Report saved to {output.resolve()}", err=True)
 
@@ -62,7 +65,9 @@ def run(
         if agent.get_state(config).values:
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
         tomorrow = datetime.now(ZoneInfo("Europe/Budapest")).date() + timedelta(days=1)
-        request = {"forecast_date": tomorrow.isoformat(), "cities": report_cities(fixture)}
+        request = {"forecast_date": tomorrow.isoformat()}
+        if fixture:
+            request["cities"] = fixture_cities()
         result = agent.invoke({"messages": [HumanMessage(json.dumps(request))]}, config, durability="sync")
         save_report(output, result["messages"])
 

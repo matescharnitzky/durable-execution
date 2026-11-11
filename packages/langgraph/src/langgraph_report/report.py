@@ -1,6 +1,7 @@
 """Forecast validation and HTML output for the LangGraph adapter."""
 
 import json
+import os
 from html import escape
 from importlib.resources import files
 from pathlib import Path
@@ -8,23 +9,23 @@ from tempfile import NamedTemporaryFile
 
 from jsonschema import Draft202012Validator
 
-FIXTURES = files("weather_core").joinpath("fixtures")
+CORE = files("weather_core")
 VALIDATOR = Draft202012Validator(
-    json.loads(FIXTURES.joinpath("report.schema.json").read_text(encoding="utf-8")),
+    json.loads(CORE.joinpath("report.schema.json").read_text(encoding="utf-8")),
     format_checker=Draft202012Validator.FORMAT_CHECKER,
 )
 
 
-def report_cities(fixture: bool) -> list[str]:
-    cities = json.loads(FIXTURES.joinpath("cities.json").read_text(encoding="utf-8"))
-    return cities[0][:2] if fixture else [city for batch in cities for city in batch]
+def fixture_cities() -> list[str]:
+    """Read the fixture input supplied by the recovery demo."""
+    return json.loads(os.environ["DURABLE_FIXTURE_CITIES"])
 
 
-def validate_report(result: dict, forecast_date: str, cities: list[str]) -> dict:
+def validate_report(result: dict, forecast_date: str, cities: list[str] | None = None) -> dict:
     VALIDATOR.validate(result)
     if result["forecast_date"] != forecast_date:
         raise ValueError("Forecast date does not match the request")
-    if [row["city"] for row in result["forecasts"]] != cities:
+    if cities is not None and [row["city"] for row in result["forecasts"]] != cities:
         raise ValueError("Forecast cities do not match the requested order")
     if any(row["low_c"] > row["high_c"] for row in result["forecasts"]):
         raise ValueError("Forecast low exceeds its high")
