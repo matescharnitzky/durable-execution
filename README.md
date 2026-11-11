@@ -17,12 +17,14 @@ Plain values, exported variables, and `op://` references are supported. For 1Pas
 
 ## LangGraph
 
-Start PostgreSQL and generate tomorrow’s forecast for 20 cities:
+Start PostgreSQL and pgAdmin, then generate tomorrow’s forecast for 20 cities:
 
 ```sh
 make up
 make langgraph-run RUN_ID=report-1
 ```
+
+pgAdmin is available at [localhost:55080](http://localhost:55080).
 
 Reports are saved as `artifacts/report_langgraph_<UTC timestamp>.html`. Use a fresh run ID for each new execution. Set `OUTPUT=artifacts/custom.html` to choose a filename.
 

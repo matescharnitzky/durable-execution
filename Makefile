@@ -13,7 +13,7 @@ RUN_ID ?= report-1
 OUTPUT ?=
 
 up:
-	@./scripts/1password.sh docker compose up -d --wait postgres
+	@./scripts/1password.sh docker compose up -d --wait
 
 down:
 	@./scripts/1password.sh docker compose down --volumes

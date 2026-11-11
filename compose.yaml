@@ -17,7 +17,6 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4:9.18
-    profiles: [pgadmin]
     ports:
       - "127.0.0.1:55080:80"
     environment:

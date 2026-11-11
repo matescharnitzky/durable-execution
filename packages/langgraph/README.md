@@ -7,11 +7,11 @@ make langgraph-status
 make langgraph-resume
 ```
 
-All three targets load `.env` and resolve any 1Password references through `scripts/1password.sh`. The default run ID is `report-1`. Reports are saved automatically as `artifacts/report_langgraph_<UTC timestamp>.html`. Use a fresh ID for a new run, for example `make langgraph-run RUN_ID=report-2`. Override the filename with `OUTPUT=artifacts/custom.html` when needed. Pass the same `RUN_ID` to status and resume. Use `make up` to start PostgreSQL. `make down` removes the containers and database volume, including saved checkpoints. Keep PostgreSQL running when stopping and resuming a worker.
+All three targets load `.env` and resolve any 1Password references through `scripts/1password.sh`. The default run ID is `report-1`. Reports are saved automatically as `artifacts/report_langgraph_<UTC timestamp>.html`. Use a fresh ID for a new run, for example `make langgraph-run RUN_ID=report-2`. Override the filename with `OUTPUT=artifacts/custom.html` when needed. Pass the same `RUN_ID` to status and resume. Use `make up` to start PostgreSQL and pgAdmin. `make down` removes the containers and database volume, including saved checkpoints. Keep PostgreSQL running when stopping and resuming a worker.
 
 The shared prompt asks for tomorrow’s forecast for the listed cities. The agent determines the date through web search. Resuming continues from the saved checkpoint.
 
-The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_URL` if using different database settings. The `pgadmin` Compose profile exposes pgAdmin on port 55080. See the [root README](../../README.md#setup) for plain environment values and 1Password setup.
+The CLI defaults to the Compose development database. Set `LANGGRAPH_DATABASE_URL` if using different database settings. pgAdmin is available at [localhost:55080](http://localhost:55080). See the [root README](../../README.md#setup) for plain environment values and 1Password setup.
 
 Run the credential-free demo with `uv run --locked python tests/recovery/demo.py .venv/bin/langgraph-report --search-tool`. The fixture completes web search, then injects a fault during the final model call. After a worker kill, `resume` uses the original PostgreSQL thread ID and reuses the saved search result. The OpenAI client retries a one-time 429 or dropped connection within the same process.
 
