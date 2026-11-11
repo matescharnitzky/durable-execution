@@ -30,7 +30,7 @@ def temporal_runtime():
         try:
             client = runner.run(Client.connect(
                 Settings().temporal_address,
-                plugins=[PydanticAIPlugin(), LogfirePlugin(setup_logfire=configure_telemetry)],
+                plugins=[PydanticAIPlugin(), LogfirePlugin(setup_logfire=configure_telemetry, metrics=False)],
             ))
             yield client, runner
         finally:

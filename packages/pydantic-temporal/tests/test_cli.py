@@ -58,6 +58,7 @@ class TemporalRuntimeTest(unittest.TestCase):
                 plugins = connect.call_args.kwargs["plugins"]
                 self.assertIsInstance(plugins[0], PydanticAIPlugin)
                 self.assertIsInstance(plugins[1], LogfirePlugin)
+                self.assertFalse(plugins[1].metrics)
                 self.assertNotIn("interceptors", connect.call_args.kwargs)
         client.start_workflow.assert_awaited_once()
         client.get_workflow_handle.assert_called_once_with("example")
