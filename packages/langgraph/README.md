@@ -13,6 +13,8 @@ All three targets load `.env` and resolve any 1Password references through `scri
 
 The shared prompt asks the agent to check tomorrow’s date first, then research five cities in order, one city per search. Parallel tool calls are disabled, so each search result returns to the agent before its next call. Resuming continues from the saved checkpoint.
 
+The search tool returns answer text and native citation URLs. Unknown temperatures use `null` and render as “Unavailable”; absent sources render as “No verified source.” Temperature statistics exclude unknown values. A saved final answer can be exported again with `resume` without another model call.
+
 The CLI uses `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` for the local Compose database on port 5432. The default database is `weather`; checkpoint tables live in its `langgraph` schema. Compose creates the schema when initializing a fresh database volume. `LANGGRAPH_DATABASE_URL` can override the connection; LangGraph still sets `search_path=langgraph`. pgAdmin is available at [localhost:80](http://localhost:80). In pgAdmin, register host `postgres`, port `5432`, and maintenance database `weather`, then browse **Schemas → langgraph → Tables**. See the [root README](../../README.md#setup) for plain environment values and 1Password setup.
 
 To demonstrate a crash, start the services with `make up`, then run:
