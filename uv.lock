@@ -1408,10 +1408,14 @@ version = "0.1.0"
 source = { editable = "core" }
 dependencies = [
     { name = "jsonschema" },
+    { name = "typer" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "jsonschema", specifier = "==4.26.0" }]
+requires-dist = [
+    { name = "jsonschema", specifier = "==4.26.0" },
+    { name = "typer", specifier = ">=0.16,<1" },
+]
 
 [[package]]
 name = "websockets"

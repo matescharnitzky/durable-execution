@@ -1,4 +1,4 @@
-.PHONY: setup check temporal-run temporal-status temporal-resume temporal-worker dbos-run dbos-status dbos-resume up down postgres langgraph-run langgraph-status langgraph-resume
+.PHONY: setup check pi-run pi-status pi-resume temporal-run temporal-status temporal-resume temporal-worker dbos-run dbos-status dbos-resume up down postgres langgraph-run langgraph-status langgraph-resume
 
 setup:
 	uv sync --locked --all-packages
@@ -7,6 +7,8 @@ setup:
 check:
 	uv run --locked --package weather-core python -m unittest discover -s core/tests
 	uv run --locked --package langgraph-report python -m unittest discover -s packages/langgraph/tests
+	npm exec --workspace @durable-execution/pi-durable -- tsc --noEmit
+	node --test packages/pi-durable/tests/recovery.test.mjs
 
 UV_ENV_FILE := $(if $(wildcard .env),--env-file .env)
 
@@ -51,3 +53,12 @@ temporal-resume:
 
 temporal-worker:
 	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked temporal-report worker
+
+pi-run:
+	@./scripts/1password.sh node --env-file-if-exists=.env packages/pi-durable/src/cli.ts run "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+pi-status:
+	@./scripts/1password.sh node --env-file-if-exists=.env packages/pi-durable/src/cli.ts status "$(RUN_ID)" $(STATUS_ARGS)
+
+pi-resume:
+	@./scripts/1password.sh node --env-file-if-exists=.env packages/pi-durable/src/cli.ts resume "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")

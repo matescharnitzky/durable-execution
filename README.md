@@ -60,3 +60,13 @@ make temporal-resume RUN_ID=report-1
 ```
 
 Reports go to `artifacts/temporal/`. See [Temporal details](packages/pydantic-temporal/README.md) for the worker-crash demo and native history.
+
+## Pi Durable
+
+```sh
+make pi-run RUN_ID=report-1
+make pi-status RUN_ID=report-1
+make pi-resume RUN_ID=report-1
+```
+
+Pi uses local SQLite and saves reports under `artifacts/pi/`. See [Pi details](packages/pi-durable/README.md) for the crash demo, or the [recovery comparison](docs/recovery-comparison.md) for the native persistence boundaries.

@@ -1,25 +1,29 @@
 # Recovery comparison
 
-The fixtures cover the same two cities. LangGraph calls a web search tool and then generates the report. The endpoint records one planning request, one search request, and two attempts at the final answer. DBOS, Temporal, and Pi let batch A finish before injecting a fault on batch B. Their endpoint sees **A, B, B**, with batch A reused. All four runtimes complete the original logical run and render HTML.
+Every implementation receives the same prompt for tomorrow’s forecasts for 20 cities. Native runtime storage owns unfinished executions. The core package validates the final report and renders the same HTML under `artifacts/<experiment>/`.
 
-| Runtime | Worker killed during a model request | HTTP 429 and lost response | Native evidence |
+| Runtime | Native store and recovery unit | What an interrupted execution can reuse | Verification of this implementation |
 |---|---|---|---|
-| LangGraph | Resume the original PostgreSQL thread, reuse the saved search result, and rerun the final model call | The OpenAI client retries the final model call within the same process | Search result available to the resumed model call, with only the model node pending after the crash |
-| Pydantic AI + DBOS | Launch against the same system database and wait on the original workflow | DBOS retries the model step | Workflow status SUCCESS and two recorded model steps |
-| Pydantic AI + Temporal | Replace the worker and follow the existing workflow. The server times out and reassigns the activity | Temporal retries the activity | Workflow status COMPLETED. The activity for A settled on attempt 1 and the activity for B on attempt 2 |
-| Pi Durable | Reopen the same SQLite store and resume the pending generation. Stable request IDs find the original submissions | The harness retries the generation | Two successful assistant turns. In the transport-failure runs, the B task also recorded an error turn |
+| LangGraph | PostgreSQL `weather.langgraph`; graph checkpoints and pending task writes | Saved messages and completed model/tool results. An unfinished node can run again. | Live report and local process crash/resume verified. |
+| Pydantic AI + DBOS | PostgreSQL `weather.dbos`; workflow and model steps | Completed model-step results during workflow replay. Hosted search inside an unfinished request can repeat. | Live report and SIGKILL recovery of the same workflow verified. |
+| Pydantic AI + Temporal | Persisted local Temporal server; workflow history and activities | Completed activity results during deterministic replay. The server times out a lost worker’s activity and retries it. | Live report and worker replacement verified; native history showed model activity attempt 2. |
+| Pi Durable | Native SQLite per run; submissions, generation tasks, and transcript entries | The original submission and committed transcript. A model request interrupted by a crash is retried; completed submissions reuse their saved answer. | Actual CLI/SQLite crash and reopen verified with mocked model transport. Updated live OpenAI and Logfire export remain unverified. |
 
-The hosted search actions inside a Responses call are part of that call. The runtimes recovered at their own boundaries: the checkpointed search tool result, DBOS step, Temporal activity, or Pi generation. If the endpoint finished a request but the worker never got the response, the worker issued the request again. The external request log shows this even when native history shows only the successful completion.
+The implementations expose their normal framework boundaries. LangGraph uses a function tool that calls OpenAI web search. Pydantic AI uses OpenAI’s native search tool within a model request. Pi adds that native tool through its supported Responses payload hook. A hosted search action is not necessarily its own durable runtime step.
 
-## Reproduce
+## Run the demos
 
-From a fresh local Compose volume, start PostgreSQL and Temporal, then create the DBOS database once.
+Run `make setup` and `make check`. Start shared services separately with `make up` for LangGraph, DBOS, and Temporal. Pi only needs local files.
 
 ```sh
-make setup
-docker compose up -d --wait postgres temporal
-docker compose exec -T postgres createdb -U weather weather_dbos
-make recovery
+./tests/langgraph-crash.sh
+./tests/dbos-crash.sh
+./tests/temporal-crash.sh
+./tests/pi-crash.sh
 ```
 
-Each demo prints the logical run ID, request attempts, and native status. For individual runs or manual recovery commands, see the [runtime READMEs](../README.md#runtimes). The fixture results measure recovery against a local endpoint. Live forecast quality and export to a real Logfire project require the provider credentials.
+Run them individually. Each uses real OpenAI calls and resolves 1Password credentials once per demo. Stop any separately running Temporal worker before its demo, which starts and replaces its own worker.
+
+The scripts print the run ID, wait for native persisted state, ask when to send SIGKILL, show native status, and resume the same execution. PostgreSQL and Temporal stay running. Use Logfire, pgAdmin, or Temporal UI to choose the crash point and distinguish saved results from in-flight work. Terminal status tables display persisted messages, steps, or activity events according to the runtime.
+
+Timing is manual. These demos do not inject HTTP 429 or lost responses, and checkpoint counts do not establish exact provider request counts. Forecast accuracy and Logfire delivery were not independently audited. `make down` deletes the Compose volumes and their stored execution history; Pi’s local SQLite files remain under artifacts.

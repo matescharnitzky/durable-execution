@@ -3,47 +3,31 @@ import { createModels, createProvider } from "@earendil-works/pi-ai/models";
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import type { Model, ProviderStreams } from "@earendil-works/pi-ai";
 
-import { search, type BatchInput } from "./report.ts";
+import { reportSchema, settings } from "./config.ts";
 
-export const modelRef = { provider: "weather-search", modelId: "openai-responses-web-search" };
+export const modelRef = { provider: "openai", modelId: settings.openaiModel };
 
 const streamWeather: ProviderStreams["streamSimple"] = (model, transcript, options) =>
   streamSimple(model as Model<"openai-responses">, transcript, {
     ...options,
-    maxRetries: 0,
-    timeoutMs: 90_000,
     onPayload(payload) {
-      const prompt = transcript.messages.findLast(message => message.role === "user");
-      if (typeof prompt?.content !== "string") throw new Error("Missing forecast input");
-      const input: BatchInput = JSON.parse(prompt.content);
       return {
         ...(payload as Record<string, unknown>),
-        model: process.env.OPENAI_MODEL || search.model,
         tools: [{ type: "web_search" }],
-        tool_choice: "required",
-        instructions: search.instructions,
-        input: JSON.stringify({
-          forecast_date: input.forecast_date,
-          cities: input.city_batches[input.batch - 1],
-        }),
+        text: { format: { type: "json_schema", name: "weather_report", strict: true, schema: reportSchema } },
       };
     },
   });
 
 export function forecastModels() {
   const openai = openaiProvider();
-  const model = openai.getModels().find(model => model.id === search.model);
-  if (!model) throw new Error(`Pi's OpenAI catalog has no model ${search.model}`);
+  const model = openai.getModels().find(model => model.id === settings.openaiModel);
+  if (!model) throw new Error(`Pi's OpenAI catalog has no model ${settings.openaiModel}`);
   const models = createModels();
   models.setProvider(createProvider({
-    id: modelRef.provider,
+    id: "openai",
     auth: openai.auth,
-    models: [{
-      ...model,
-      id: modelRef.modelId,
-      provider: modelRef.provider,
-      baseUrl: process.env.OPENAI_BASE_URL || model.baseUrl,
-    }],
+    models: [{ ...model, baseUrl: settings.openaiBaseUrl || model.baseUrl }],
     api: { stream: streamWeather, streamSimple: streamWeather },
   }));
   return models;

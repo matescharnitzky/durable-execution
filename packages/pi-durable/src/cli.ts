@@ -1,102 +1,93 @@
+import { spawnSync } from "node:child_process";
 import { mkdir, open, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { parseArgs } from "node:util";
+import { Command, Option } from "commander";
 import { BACKGROUND_CONTEXT as context } from "@earendil-works/chord/context";
-import { AssistantEntry, createRegistry, Harness } from "@earendil-works/pi-durable";
+import { createRegistry, Harness } from "@earendil-works/pi-durable";
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 
+import { settings, systemPrompt } from "./config.ts";
 import { forecastModels, modelRef } from "./provider.ts";
-import { cityBatches, validateBatch, writeReport, type BatchInput, type BatchReport } from "./report.ts";
 import { logfireTelemetry } from "./telemetry.ts";
 
-async function main() {
-  const { positionals, values } = parseArgs({
-    allowPositionals: true,
-    options: { date: { type: "string" }, output: { type: "string" }, fixture: { type: "boolean" } },
-  });
-  const [command, runId] = positionals;
-  if (positionals.length !== 2 || !["run", "resume", "status"].includes(command) || !/^[a-zA-Z0-9_-]+$/.test(runId)) {
-    throw new Error("Usage: pi-report (run|status|resume) RUN_ID [--date YYYY-MM-DD] [--output PATH] [--fixture]");
-  }
-  if (command !== "status" && !values.output) throw new Error("--output is required");
-  if (command === "run" && (
-    !values.date || !/^\d{4}-\d{2}-\d{2}$/.test(values.date)
-    || new Date(values.date).toISOString().slice(0, 10) !== values.date
-  )) throw new Error("Use an explicit valid --date YYYY-MM-DD");
+const requestId = "weather-report";
 
-  const directory = process.env.PI_STATE_DIR || "artifacts/pi";
-  const database = join(directory, `${runId}.sqlite`);
+export async function report(command: string, runId: string, options: { output?: string; json?: boolean }) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(runId)) throw new Error("Use a run ID containing letters, numbers, underscores, or dashes");
+  const database = join(settings.stateDirectory, `${runId}.sqlite`);
   const exists = await stat(database).then(() => true, error => {
     if (error.code === "ENOENT") return false;
     throw error;
   });
-  if (command === "status" && !exists) {
-    console.log(JSON.stringify({ run_id: runId, state: "unknown" }));
+  if (!exists && command === "status") {
+    console.log(options.json ? JSON.stringify({ run_id: runId, state: "unknown" }) : "Unknown run ID.");
     return;
   }
-  if (command === "resume" && !exists) throw new Error("Unknown run ID");
+  if (!exists && command === "resume") throw new Error("Unknown run ID");
   if (command === "run") {
-    await mkdir(directory, { recursive: true });
+    await mkdir(settings.stateDirectory, { recursive: true });
     await (await open(database, "wx", 0o600)).close();
   }
-
-  const telemetry = logfireTelemetry(runId);
-  const harness = await Harness.open(await openNodeSqliteStorage(database), {
-    models: forecastModels(),
-    registry: createRegistry(),
-    readOnly: command === "status",
-    settings: { retry: { enabled: true, maxRetries: 2, baseDelayMs: 500 } },
-    telemetry: telemetry?.context,
+  const telemetry = command === "status" ? undefined : logfireTelemetry(runId);
+  const storage = await openNodeSqliteStorage(database);
+  const harness = await Harness.open(storage, {
+    models: forecastModels(), registry: createRegistry(),
+    readOnly: command === "status", telemetry: telemetry?.context,
   }, context);
   try {
-    const root = command === "run" ? await harness.root(context, { agent: { model: modelRef } })
-      : await harness.root(context);
-    const view = await root.context(context);
-    const initial = view.messages.find(message => message.role === "user");
+    const stored = (await storage.scanSubmissions({}, 100, undefined, context)).items.find(item => item.requestId === requestId);
     if (command === "status") {
-      const turns = view.entries.filter(entry => entry.kind === "pi.assistant").map(entry => ({
-        entry: entry.id,
-        task: entry.byTaskId,
-        outcome: entry.model?.find(message => message.role === "assistant")?.stopReason,
-      }));
-      const expected = typeof initial?.content === "string"
-        ? (JSON.parse(initial.content) as BatchInput).city_batches.length : undefined;
-      const completed = turns.filter(turn => turn.outcome === "stop").length;
-      const state = expected === undefined ? "unknown" : completed === expected ? "complete" : "pending";
-      console.log(JSON.stringify({ run_id: runId, state, completed_batches: completed, turns }));
+      const state = !stored ? "unknown" : stored.status === "done" ? "complete" : stored.status === "unanswered" ? "failed" : "pending";
+      if (options.json) {
+        console.log(JSON.stringify({ run_id: runId, state, submission_id: stored?.id, submission_status: stored?.status }));
+        return;
+      }
+      console.log(`Run: ${runId}\nState: ${state} · Submission: ${stored?.status || "none"}`);
+      if (!stored) return;
+      const conversation = await harness.conversation(stored.conversationId, context);
+      const view = await conversation!.context(context);
+      console.table(view.messages.filter(message => message.role !== "system").map((message, index) => ({
+        Turn: index + 1,
+        Role: message.role,
+        "Saved content": (typeof message.content === "string" ? message.content : message.content.map(part =>
+          part.type === "text" ? part.text : part.type === "toolCall" ? `${part.name}(${JSON.stringify(part.arguments)})` : ""
+        ).join(" ")).replace(/\s+/g, " ").slice(0, 240),
+      })));
       return;
     }
-    const first: BatchInput = command === "run"
-      ? { forecast_date: values.date!, city_batches: cityBatches(values.fixture ?? false), batch: 1 }
-      : typeof initial?.content === "string" ? JSON.parse(initial.content) as BatchInput
-      : (() => { throw new Error("No durable submission exists for this run"); })();
-
+    const submission = command === "run"
+      ? await (await harness.root(context, { agent: { model: modelRef, instructions: systemPrompt } })).submit({
+        type: "input", content: "Generate the weather report.", requestId,
+      }, context)
+      : stored ? await harness.submission(stored.id, context) : undefined;
+    if (!submission) throw new Error("No durable submission exists for this run");
     harness.resume();
-    const results: BatchReport[] = [];
-    for (let index = 0; index < first.city_batches.length; index++) {
-      const input = { ...first, batch: index + 1 };
-      const submission = await root.submit({
-        type: "input", content: JSON.stringify(input), requestId: `batch-${input.batch}`,
-      }, context);
-      const settled = await submission.wait(context);
-      if (settled.status !== "done" || settled.type !== "input") {
-        throw new Error(`Pi submission ${submission.id} did not complete`);
-      }
-      const entry = await root.commit(tx => tx.entry(AssistantEntry, settled.answer), context);
-      const message = entry?.model?.find(part => part.role === "assistant");
-      const text = message?.content.find(part => part.type === "text");
-      if (!text) throw new Error(`Pi submission ${submission.id} has no forecast`);
-      results.push(validateBatch(JSON.parse(text.text.trim().replace(/^```json\s*|\s*```$/g, "")), input));
-    }
-    await writeReport(values.output!, results);
+    const settled = await submission.wait(context);
+    if (settled.status !== "done" || settled.type !== "input") throw new Error(`Pi submission ended as ${settled.status}`);
+    const answer = await storage.entry(settled.conversationId, settled.answer, context);
+    const message = answer?.entry.model?.find(message => message.role === "assistant");
+    if (!message || message.role !== "assistant") throw new Error("No saved final report");
+    const text = message.content.filter(part => part.type === "text").map(part => part.text).join("");
+    const args = ["run", "--locked", "--package", "weather-core", "weather-report", "Pi"];
+    if (options.output) args.push("--output", options.output);
+    const rendered = spawnSync("uv", args, { input: text.trim().replace(/^```json\s*|\s*```$/g, ""), encoding: "utf8" });
+    if (rendered.status !== 0) throw new Error(rendered.stderr || "Shared report renderer failed");
+    console.error(`Report saved to ${rendered.stdout.trim()}`);
   } finally {
     await harness.close(context);
     await telemetry?.close();
   }
 }
 
+const program = new Command().name("pi-report");
+for (const command of ["run", "status", "resume"]) {
+  const action = program.command(command).argument("<run-id>");
+  if (command === "status") action.addOption(new Option("--json", "Return machine-readable status"));
+  else action.option("--output <path>", "Override the report filename");
+  action.action(async (runId: string, options) => { await report(command, runId, options); });
+}
 try {
-  await main();
+  await program.parseAsync();
 } catch (error) {
   console.error(error instanceof Error ? error.message : "Pi report failed");
   process.exitCode = 1;

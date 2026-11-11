@@ -7,8 +7,9 @@ export function logfireTelemetry(runId: string) {
   const token = process.env.LOGFIRE_TOKEN;
   if (!token) return undefined;
   const region = /^pylf_v\d+_eu_/.test(token) ? "eu" : "us";
+  const baseUrl = process.env.LOGFIRE_BASE_URL || `https://logfire-${region}.pydantic.dev`;
   const exporter = new OTLPTraceExporter({
-    url: process.env.LOGFIRE_OTLP_TRACES_URL || `https://logfire-${region}.pydantic.dev/v1/traces`,
+    url: process.env.LOGFIRE_OTLP_TRACES_URL || `${baseUrl.replace(/\/$/, "")}/v1/traces`,
     headers: { Authorization: token },
   });
   const provider = new NodeTracerProvider({ spanProcessors: [new SimpleSpanProcessor(exporter)] });
