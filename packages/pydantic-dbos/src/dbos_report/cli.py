@@ -20,7 +20,7 @@ app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
 
 @contextmanager
-def report_runtime():
+def dbos_runtime():
     settings = Settings()
     logfire.configure(service_name="dbos-report", send_to_logfire=settings.logfire_token is not None, console=False)
     DBOS(config={
@@ -44,7 +44,7 @@ def save_report(output: Path | None, answer: dict) -> None:
 
 @app.command()
 def run(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
-    with report_runtime():
+    with dbos_runtime():
         if DBOS.get_workflow_status(run_id):
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
         with SetWorkflowID(run_id):
@@ -86,7 +86,7 @@ def status(run_id: str, as_json: Annotated[bool, typer.Option("--json")] = False
 
 @app.command()
 def resume(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
-    with report_runtime():
+    with dbos_runtime():
         state = DBOS.get_workflow_status(run_id)
         if state is None:
             raise typer.BadParameter("Unknown run ID.", param_hint="run_id")
