@@ -10,7 +10,7 @@ make dbos-resume RUN_ID=report-1
 
 Use a fresh ID for each new execution. The shared prompt asks for tomorrow’s forecast for 20 cities. Pydantic AI uses OpenAI’s native web-search tool and structured output with the shared report schema. Reports use the core HTML renderer and are saved under `artifacts/dbos/report_dbos_<UTC timestamp>.html`. Set `OUTPUT` to override the path.
 
-DBOS uses the PostgreSQL credentials from `.env` and its own `dbos` schema in `weather`. `DBOS_SYSTEM_DATABASE_URL` overrides the connection. The runtime creates and migrates its own tables. In pgAdmin, browse **weather → Schemas → dbos → Tables**.
+DBOS uses `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` from `.env`, connects on localhost port 5432, and stores its tables in the `dbos` schema. The runtime creates and migrates its own tables. In pgAdmin, browse **weather → Schemas → dbos → Tables**.
 
 ## Crash and resume
 
@@ -24,6 +24,6 @@ DBOS records Pydantic AI model requests as durable steps. Completed steps are re
 
 ## Logfire
 
-Set `LOGFIRE_TOKEN` in `.env`. Pydantic AI’s native instrumentation emits model spans with content disabled, and the workflow span carries `durable.runtime=dbos` and `durable.run_id`. Correlate traces with the workflow ID and compare them with native DBOS step history.
+Set `LOGFIRE_TOKEN` in `.env`. Logfire is configured before DBOS launches, and DBOS’s native OpenTelemetry instrumentation emits workflow and step spans through that exporter. Pydantic AI adds agent and model spans with content disabled. Its agent metadata carries `durable.runtime=dbos` and `durable.run_id`; DBOS spans identify the workflow with `dbos.operation.workflow_id`. Correlate these with native DBOS step history. No separate exporter credentials are needed.
 
 [Pydantic AI’s DBOS integration](https://pydantic.dev/docs/ai/capabilities/durable_execution/dbos/)

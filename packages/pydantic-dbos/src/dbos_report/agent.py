@@ -1,4 +1,3 @@
-import logfire
 from dbos import DBOS
 from pydantic_ai import Agent, NativeOutput, StructuredDict, WebSearchTool
 from pydantic_ai.capabilities import Instrumentation, NativeTool
@@ -25,9 +24,8 @@ agent = Agent(
 
 @DBOS.workflow()
 async def report(run_id: str) -> dict:
-    with logfire.span("DBOS report", **{"durable.runtime": "dbos", "durable.run_id": run_id}):
-        result = await agent.run(
-            "Generate the weather report.",
-            metadata={"durable.runtime": "dbos", "durable.run_id": run_id},
-        )
-        return validate_report(result.output)
+    result = await agent.run(
+        "Generate the weather report.",
+        metadata={"durable.runtime": "dbos", "durable.run_id": run_id},
+    )
+    return validate_report(result.output)
