@@ -13,12 +13,18 @@ The shared prompt asks for tomorrow’s forecast for the listed cities. The agen
 
 The CLI uses `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` for the local Compose database on port 5432. The default database is `weather`; checkpoint tables live in its `langgraph` schema. Compose creates the schema when initializing a fresh database volume. `LANGGRAPH_DATABASE_URL` can override the connection; LangGraph still sets `search_path=langgraph`. pgAdmin is available at [localhost:80](http://localhost:80). In pgAdmin, register host `postgres`, port `5432`, and maintenance database `weather`, then browse **Schemas → langgraph → Tables**. See the [root README](../../README.md#setup) for plain environment values and 1Password setup.
 
-Run the credential-free demo with `./scripts/1password.sh uv run --env-file .env --locked python tests/recovery/demo.py .venv/bin/langgraph-report --search-tool`. The fixture completes web search, then injects a fault during the final model call. After a worker kill, `resume` uses the original PostgreSQL thread ID and reuses the saved search result. The OpenAI client retries a one-time 429 or dropped connection within the same process.
+To demonstrate a crash, start the services with `make up`, then run:
+
+```sh
+./tests/langgraph-crash.sh
+```
+
+The script calls the existing Make targets to run, inspect, and resume one execution. Inspect Logfire or pgAdmin, then press Enter to kill the run’s process group with `SIGKILL`. Press Enter again to resume the same run ID. PostgreSQL stays running. You can supply a run ID as the script’s first argument. This uses real OpenAI calls; crash timing is manual, and an unfinished API call may be repeated.
 
 The CLI configures LangChain’s `create_agent` with the shared system prompt, PostgreSQL checkpointer, and the OpenAI web-search tool from `tools.py`. `config.py` loads the model, database URL, and credentials from the environment. The shared `weather_core.report` renderer exports the forecast with `experiment="LangGraph"`. Its HTML template lives in core. The HTML report is self-contained and adapts to desktop, mobile, and print. Run and resume generate a new timestamped filename by default; `--output` overrides the path.
 
 ## Observe a run
 
-Set `LOGFIRE_TOKEN` and run or resume the graph. LangGraph’s native tracer sends agent and model spans through Logfire's OpenTelemetry provider. `observability.py` sets the documented LangSmith tracing environment variables before running the agent and then calls `logfire.configure()`. It uses OpenTelemetry-only mode with inputs and outputs hidden. No LangSmith account or API key is needed. The agent calls a LangChain tool that runs OpenAI-hosted search. Filter by `langsmith.metadata.durable.run_id` to see activity across restarts. Use `status` for the persisted checkpoint state and the fixture log for the exact HTTP attempts.
+Set `LOGFIRE_TOKEN` and run or resume the graph. LangGraph’s native tracer sends agent and model spans through Logfire's OpenTelemetry provider. `observability.py` sets the documented LangSmith tracing environment variables before running the agent and then calls `logfire.configure()`. It uses OpenTelemetry-only mode with inputs and outputs hidden. No LangSmith account or API key is needed. The agent calls a LangChain tool that runs OpenAI-hosted search. Filter by `langsmith.metadata.durable.run_id` to see activity across restarts. Use `status` and pgAdmin for persisted checkpoint state, and Logfire to inspect model and tool activity across restart.
 
 [Logfire's LangGraph integration](https://pydantic.dev/docs/logfire/integrations/llms/langgraph/)
