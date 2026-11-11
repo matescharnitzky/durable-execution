@@ -23,7 +23,13 @@ app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 def runtime():
     settings = Settings()
     logfire.configure(service_name="dbos-report", send_to_logfire=settings.logfire_token is not None, console=False)
-    DBOS(config={"name": "weather-report", "system_database_url": settings.database_url, "dbos_system_schema": "dbos"})
+    DBOS(config={
+        "name": "weather-report",
+        "system_database_url": settings.database_url,
+        "dbos_system_schema": "dbos",
+        "enable_otlp": True,
+        "otel_attribute_format": "semconv",
+    })
     DBOS.launch()
     try:
         yield
