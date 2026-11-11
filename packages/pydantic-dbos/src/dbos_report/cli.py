@@ -57,7 +57,7 @@ def status(run_id: str, as_json: Annotated[bool, typer.Option("--json")] = False
                 raise
             workflows = []
         native = workflows[0].status if workflows else "UNKNOWN"
-        state = {"SUCCESS": "complete", "UNKNOWN": "unknown", "ERROR": "failed", "CANCELLED": "failed"}.get(native, "pending")
+        state = {"SUCCESS": "complete", "UNKNOWN": "unknown", "ERROR": "failed", "CANCELLED": "failed", "MAX_RECOVERY_ATTEMPTS_EXCEEDED": "failed"}.get(native, "pending")
         steps = client.list_workflow_steps(run_id, load_output=not as_json) if workflows else []
         if as_json:
             typer.echo(json.dumps({"run_id": run_id, "state": state, "workflow_status": native}))
@@ -84,5 +84,5 @@ def resume(run_id: str, output: Annotated[Path | None, typer.Option("--output")]
         state = DBOS.get_workflow_status(run_id)
         if state is None:
             raise typer.BadParameter("Unknown run ID.", param_hint="run_id")
-        handle = DBOS.resume_workflow(run_id) if state.status in {"ERROR", "CANCELLED", "SUSPENDED"} else DBOS.retrieve_workflow(run_id)
+        handle = DBOS.resume_workflow(run_id) if state.status in {"ERROR", "CANCELLED", "SUSPENDED", "MAX_RECOVERY_ATTEMPTS_EXCEEDED"} else DBOS.retrieve_workflow(run_id)
         save_report(output, handle.get_result())
