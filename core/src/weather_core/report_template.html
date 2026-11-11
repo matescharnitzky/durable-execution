@@ -41,6 +41,7 @@
     .low { color: #74828c; }
     .range-line { display: inline-block; width: 18px; height: 1px; margin: 0 10px 6px; background: #b9c6cc; }
     .temperatures strong { font-weight: 650; }
+    .temperatures .unavailable { color: var(--muted); font-size: 12px; font-weight: 400; }
     .conditions { width: 40%; color: #425863; font-size: 13px; }
     .sources { width: 23%; font-size: 11px; }
     .sources a { display: block; width: fit-content; max-width: 100%; margin: 3px 0; color: #336477; text-decoration: none; overflow-wrap: anywhere; }
@@ -93,9 +94,9 @@
     </header>
     <section class="overview" aria-label="Forecast overview">
       <div><h2>At a glance</h2><p>$summary</p></div>
-      <dl class="stats"><div><dt>Cities</dt><dd>$city_count</dd></div><div><dt>Lowest low</dt><dd>$lowest°</dd></div><div><dt>Highest high</dt><dd>$highest°</dd></div></dl>
+      <dl class="stats"><div><dt>Cities</dt><dd>$city_count</dd></div><div><dt>Lowest low</dt><dd>$lowest</dd></div><div><dt>Highest high</dt><dd>$highest</dd></div></dl>
     </section>
-    <div class="section-heading"><h2>City by city</h2><p>Temperatures in °C · daily low / high</p></div>
+    <div class="section-heading"><h2>City by city</h2><p>Temperatures in °C · daily low / high · — means unavailable</p></div>
     <div class="table-shell">
       <table>
         <caption>Weather forecast for $display_date. Temperatures in degrees Celsius.</caption>
