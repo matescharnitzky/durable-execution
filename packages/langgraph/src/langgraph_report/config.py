@@ -15,10 +15,11 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        return self.langgraph_database_url or make_conninfo(
+        connection = self.langgraph_database_url or make_conninfo(
             host="127.0.0.1",
             port=5432,
             dbname=self.postgres_db,
             user=self.postgres_user,
             password=self.postgres_password.get_secret_value(),
         )
+        return make_conninfo(connection, options="-c search_path=langgraph")

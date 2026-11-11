@@ -14,6 +14,7 @@ services:
       retries: 30
     volumes:
       - postgres:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/001-schemas.sql:ro
 
   pgadmin:
     image: dpage/pgadmin4:9.18
