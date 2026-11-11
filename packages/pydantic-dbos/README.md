@@ -22,6 +22,8 @@ The script calls Make to run, inspect, and resume the same workflow. It waits un
 
 DBOS records each main-agent model request as a durable step. The `web_search` function has its own `@DBOS.step()` boundary, so completed searches are reused and returned to subsequent model turns when the workflow replays. A search interrupted before its step completes can run again. The agent chooses its queries; there is no application-controlled city batching or progress cache.
 
+Search results include the answer and native provider citations so source URLs reach the main agent. The shared report schema allows unknown temperatures as `null` and missing sources as an empty list. HTML shows these as “Unavailable” and “No verified source”; unknown values are excluded from temperature statistics. Recovery success does not establish forecast completeness or accuracy.
+
 `status` shows saved model turns and search results with their native step IDs. Before any step completes it prints “No completed steps saved yet.” `STATUS_ARGS=--json` returns machine-readable state. `resume` uses DBOS’s native workflow recovery, preserving the workflow ID. Completed workflows can export their saved report again. Use fresh run IDs for this version; unfinished workflows from the previous single-request implementation need the code version that started them.
 
 ## Logfire

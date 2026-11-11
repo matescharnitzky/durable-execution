@@ -16,6 +16,8 @@ make temporal-resume RUN_ID=report-1
 
 The shared prompt asks the agent to check tomorrow’s date first, then research five cities in order, one city per search. Parallel function calls are disabled through the model’s native setting. The main agent calls a `web_search` function tool, which makes a separate OpenAI hosted-search request. `TemporalDurability()` records main-agent model turns and function-tool calls as activities using its default timeouts and retry policy. Strict structured output feeds the core renderer, which exports `artifacts/temporal/report_temporal_<UTC timestamp>.html`; `OUTPUT` overrides the path.
 
+The search tool returns answer text with native provider citations. The shared report contract uses `null` for unknown temperatures and an empty list for missing sources; the HTML renderer shows these gaps explicitly and excludes unknown values from temperature statistics. Workflow completion does not establish forecast accuracy.
+
 The local Temporal development server persists its native history to a Docker volume. Its API is on port 7233 and UI at [localhost:8233](http://localhost:8233). Its native SQLite store is separate from the PostgreSQL schemas used by LangGraph and DBOS. `TEMPORAL_ADDRESS` can override the server connection. `make down` removes the volume and workflow history.
 
 ## Crash and resume
