@@ -2,7 +2,7 @@
 name = "dbos-report"
 version = "0.1.0"
 requires-python = ">=3.13,<3.14"
-dependencies = ["weather-core", "pydantic-ai-slim[dbos,openai]>=2.66,<3", "openai>=3.31,<4", "logfire>=5,<6"]
+dependencies = ["weather-core", "pydantic-ai-slim[dbos,openai]>=2.66,<3", "openai>=3.31,<4", "logfire>=5,<6", "pydantic-settings>=2,<3", "typer>=0.16,<1", "rich>=15,<16"]
 
 [project.scripts]
 dbos-report = "dbos_report.cli:main"
