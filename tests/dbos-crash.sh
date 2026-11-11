@@ -3,6 +3,10 @@ set -euo pipefail
 
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
+if [[ "${DURABLE_ENV_LOADED:-}" != "1" ]]; then
+  exec ./scripts/1password.sh env DURABLE_ENV_LOADED=1 bash tests/dbos-crash.sh "$@"
+fi
+
 run_id="${1:-crash-$(date +%Y%m%d-%H%M%S)-$$}"
 printf 'Run ID: %s\n' "$run_id"
 

@@ -18,7 +18,7 @@ DBOS uses the PostgreSQL credentials from `.env` and its own `dbos` schema in `w
 ./tests/dbos-crash.sh
 ```
 
-The script calls Make to run, inspect, and resume the same workflow. It waits until DBOS has stored the workflow before offering to kill its local process group. PostgreSQL stays running. Use Logfire or pgAdmin to choose when to press Enter. The script uses real OpenAI calls.
+The script calls Make to run, inspect, and resume the same workflow. It waits until DBOS has stored the workflow before offering to kill its local process group. PostgreSQL stays running. Use Logfire or pgAdmin to choose when to press Enter. The script uses real OpenAI calls and resolves 1Password credentials once for the whole demo; its nested Make commands reuse that environment.
 
 DBOS records Pydantic AI model requests as durable steps. Completed steps are reused when the workflow replays. Hosted web searches inside an unfinished model request can run again. `status` shows the native saved steps and their output previews; `STATUS_ARGS=--json` returns machine-readable state. `resume` uses DBOS’s native workflow recovery, preserving the workflow ID. Completed workflows can export their saved report again.
 
