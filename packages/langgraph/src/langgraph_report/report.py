@@ -10,7 +10,7 @@ from jsonschema import Draft202012Validator
 
 CORE = files("weather_core")
 VALIDATOR = Draft202012Validator(
-    json.loads(CORE.joinpath("report.schema.json").read_text(encoding="utf-8")),
+    json.loads(CORE.joinpath("report_schema.json").read_text(encoding="utf-8")),
     format_checker=Draft202012Validator.FORMAT_CHECKER,
 )
 
