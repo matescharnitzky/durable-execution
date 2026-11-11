@@ -6,7 +6,7 @@ import { createAssistantMessageEventStream } from "@earendil-works/pi-ai/utils/e
 const fixture = readFileSync(new URL("../../../core/tests/report.json", import.meta.url), "utf8");
 
 mock.module("@earendil-works/pi-ai/api/openai-responses", {
-  namedExports: {
+  exports: {
     streamSimple(model, transcript, options) {
       const input = { messages: transcript.messages };
       const payload = options.onPayload({ input }, model);
@@ -15,9 +15,11 @@ mock.module("@earendil-works/pi-ai/api/openai-responses", {
       assert.equal(payload.text.format.type, "json_schema");
       assert.equal(payload.text.format.strict, true);
       assert.ok(transcript.messages.some(message => message.role === "user"));
-      assert.ok(transcript.messages.some(message => message.role === "system"
-        && typeof message.content === "string" && message.content.includes("tomorrow")
-        && message.content.includes("Budapest")));
+      const instructions = transcript.messages.filter(message => message.role === "system").map(message => [
+        typeof message.content === "string" ? message.content : message.content.map(part => part.text).join(" "),
+        ...Object.values(message.sections || {}),
+      ].join(" ")).join(" ");
+      assert.ok(instructions.includes("tomorrow") && instructions.includes("Budapest"));
       const stream = createAssistantMessageEventStream();
       if (process.env.PI_TEST_BLOCK === "1") {
         process.stdout.write("MODEL_REQUEST_STARTED\n");
