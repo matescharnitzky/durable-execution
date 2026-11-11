@@ -14,6 +14,18 @@ trap 'kill -KILL -- "-$worker_pid" 2>/dev/null || true' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+echo 'Waiting for the first checkpoint...'
+until make --no-print-directory langgraph-status RUN_ID="$run_id" |
+  .venv/bin/python -c 'import json, sys; sys.exit(json.load(sys.stdin)["state"] == "unknown")'; do
+  if ! kill -0 "$worker_pid" 2>/dev/null; then
+    wait "$worker_pid"
+    echo 'The worker exited before saving a checkpoint.' >&2
+    exit 1
+  fi
+  sleep 1
+done
+
+echo 'Checkpoint saved. The run can now be resumed after a crash.'
 read -r -p "Press Enter to kill the worker (inspect Logfire or pgAdmin first)... "
 if ! kill -0 "$worker_pid" 2>/dev/null; then
   wait "$worker_pid"

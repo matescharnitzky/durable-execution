@@ -19,7 +19,7 @@ To demonstrate a crash, start the services with `make up`, then run:
 ./tests/langgraph-crash.sh
 ```
 
-The script calls the existing Make targets to run, inspect, and resume one execution. Inspect Logfire or pgAdmin, then press Enter to kill the run’s process group with `SIGKILL`. Press Enter again to resume the same run ID. PostgreSQL stays running. You can supply a run ID as the script’s first argument. This uses real OpenAI calls; crash timing is manual, and an unfinished API call may be repeated.
+The script calls the existing Make targets to run, inspect, and resume one execution. The script waits for a saved checkpoint before showing the kill prompt. Inspect Logfire or pgAdmin, then press Enter to kill the run’s process group with `SIGKILL`. Press Enter again to resume the same run ID. PostgreSQL stays running. You can supply a run ID as the script’s first argument. This uses real OpenAI calls; crash timing is manual, and an unfinished API call may be repeated.
 
 The CLI configures LangChain’s `create_agent` with the shared system prompt, PostgreSQL checkpointer, and the OpenAI web-search tool from `tools.py`. `config.py` loads the model, database URL, and credentials from the environment. The shared `weather_core.report` renderer exports the forecast with `experiment="LangGraph"`. Its HTML template lives in core. The HTML report is self-contained and adapts to desktop, mobile, and print. Run and resume generate a new timestamped filename by default; `--output` overrides the path.
 
