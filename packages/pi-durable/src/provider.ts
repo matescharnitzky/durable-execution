@@ -7,6 +7,10 @@ import { reportSchema, settings } from "./config.ts";
 
 export const modelRef = { provider: "openai", modelId: settings.openaiModel };
 
+// OpenAI strict output accepts a subset of JSON Schema; core still validates URI format.
+const outputSchema = structuredClone(reportSchema);
+delete (outputSchema.properties.forecasts.items.properties.sources.items.properties.url as { format?: string }).format;
+
 const streamWeather: ProviderStreams["streamSimple"] = (model, transcript, options) =>
   streamSimple(model as Model<"openai-responses">, transcript, {
     ...options,
@@ -14,7 +18,7 @@ const streamWeather: ProviderStreams["streamSimple"] = (model, transcript, optio
       return {
         ...(payload as Record<string, unknown>),
         tools: [{ type: "web_search" }],
-        text: { format: { type: "json_schema", name: "weather_report", strict: true, schema: reportSchema } },
+        text: { format: { type: "json_schema", name: "weather_report", strict: true, schema: outputSchema } },
       };
     },
   });

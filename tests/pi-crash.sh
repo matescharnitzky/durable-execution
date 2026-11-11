@@ -18,19 +18,19 @@ trap 'kill -KILL -- "-$worker_pid" 2>/dev/null || true' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-echo 'Waiting for the workflow to be stored...'
+echo 'Waiting for the submission to be stored...'
 until make --no-print-directory pi-status RUN_ID="$run_id" STATUS_ARGS=--json |
   .venv/bin/python -c 'import json, sys; sys.exit(json.load(sys.stdin)["state"] == "unknown")'; do
   if ! kill -0 "$worker_pid" 2>/dev/null; then
     wait "$worker_pid"
-    echo 'The worker exited before storing the workflow.' >&2
+    echo 'The worker exited before storing the submission.' >&2
     exit 1
   fi
   sleep 1
 done
 
-echo 'Workflow stored. The run can now be resumed after a crash.'
-read -r -p "Press Enter to kill the worker (inspect Logfire or pgAdmin first)... "
+echo 'Submission stored. The run can now be resumed after a crash.'
+read -r -p "Press Enter to kill the worker (inspect Logfire or make pi-status first)... "
 if ! kill -0 "$worker_pid" 2>/dev/null; then
   wait "$worker_pid"
   echo 'The run already finished. Try again with a fresh run ID.' >&2

@@ -14,6 +14,9 @@ mock.module("@earendil-works/pi-ai/api/openai-responses", {
       assert.equal(payload.tools[0].type, "web_search");
       assert.equal(payload.text.format.type, "json_schema");
       assert.equal(payload.text.format.strict, true);
+      const urlSchema = payload.text.format.schema.properties.forecasts.items.properties.sources.items.properties.url;
+      assert.equal(urlSchema.format, undefined);
+      assert.equal(urlSchema.pattern, "^https?://");
       assert.ok(transcript.messages.some(message => message.role === "user"));
       const instructions = transcript.messages.filter(message => message.role === "system").map(message => [
         typeof message.content === "string" ? message.content : message.content.map(part => part.text).join(" "),
