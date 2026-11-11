@@ -11,7 +11,9 @@ All three targets load `.env` and resolve any 1Password references through `scri
 
 `make langgraph-status RUN_ID=<id>` shows the saved turns in a terminal table, plus the current state and next node. Long message contents are shown as previews. Use `STATUS_ARGS=--json` for machine-readable status. The table is reconstructed from LangGraph’s persisted state, so an unfinished API call without a saved result will not appear as a completed turn.
 
-The shared prompt asks for tomorrow’s forecast for the listed cities. The agent determines the date through web search. Resuming continues from the saved checkpoint.
+The shared prompt asks the agent to check tomorrow’s date first, then research five cities in order, one city per search. Parallel tool calls are disabled, so each search result returns to the agent before its next call. Resuming continues from the saved checkpoint.
+
+The search tool returns answer text and native citation URLs. Unknown temperatures use `null` and render as “Unavailable”; absent sources render as “No verified source.” Temperature statistics exclude unknown values. A saved final answer can be exported again with `resume` without another model call.
 
 The CLI uses `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` for the local Compose database on port 5432. The default database is `weather`; checkpoint tables live in its `langgraph` schema. Compose creates the schema when initializing a fresh database volume. `LANGGRAPH_DATABASE_URL` can override the connection; LangGraph still sets `search_path=langgraph`. pgAdmin is available at [localhost:80](http://localhost:80). In pgAdmin, register host `postgres`, port `5432`, and maintenance database `weather`, then browse **Schemas → langgraph → Tables**. See the [root README](../../README.md#setup) for plain environment values and 1Password setup.
 
@@ -21,7 +23,7 @@ To demonstrate a crash, start the services with `make up`, then run:
 ./tests/langgraph-crash.sh
 ```
 
-The script calls the existing Make targets to run, inspect, and resume one execution. The script waits for a saved checkpoint before showing the kill prompt. Inspect Logfire or pgAdmin, then press Enter to kill the run’s process group with `SIGKILL`. Press Enter again to resume the same run ID. PostgreSQL stays running. You can supply a run ID as the script’s first argument. This uses real OpenAI calls; crash timing is manual, and an unfinished API call may be repeated.
+The script calls the existing Make targets to run, inspect, and resume one execution. The script waits for a saved checkpoint before showing the kill prompt. Inspect Logfire or pgAdmin, then press Enter to kill the run’s process group with `SIGKILL`. Press Enter again to resume the same run ID. PostgreSQL stays running. You can supply a run ID as the script’s first argument. Credentials are resolved once for the demo and reused by its Make commands. This uses real OpenAI calls; crash timing is manual, and an unfinished API call may be repeated.
 
 The CLI configures LangChain’s `create_agent` with the shared system prompt, PostgreSQL checkpointer, and the OpenAI web-search tool from `tools.py`. `config.py` loads the model, database URL, and credentials from the environment. The shared `weather_core.report` renderer exports the forecast with `experiment="LangGraph"`. Its HTML template lives in core. The HTML report is self-contained and adapts to desktop, mobile, and print. Run and resume generate a new timestamped filename by default; `--output` overrides the path.
 

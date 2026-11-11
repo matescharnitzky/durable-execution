@@ -17,7 +17,7 @@ Plain values, exported variables, and `op://` references are supported. For 1Pas
 
 ## LangGraph
 
-Start PostgreSQL and pgAdmin, then generate tomorrow’s forecast for 20 cities:
+Start PostgreSQL and pgAdmin, then generate tomorrow’s forecast for five cities:
 
 ```sh
 make up
@@ -38,3 +38,13 @@ make langgraph-resume RUN_ID=report-1
 Keep PostgreSQL running during recovery. When finished, `make down` removes containers and volumes, including checkpoints.
 
 See [LangGraph details](packages/langgraph/README.md) for the recovery demo and Logfire tracing.
+
+## DBOS
+
+```sh
+make dbos-run RUN_ID=report-1
+make dbos-status RUN_ID=report-1
+make dbos-resume RUN_ID=report-1
+```
+
+Start services with `make up` first. DBOS uses the `weather.dbos` schema and saves reports under `artifacts/dbos/`. See [DBOS details](packages/pydantic-dbos/README.md) for its crash demo and native recovery behavior.

@@ -3,6 +3,10 @@ set -euo pipefail
 
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
+if [[ "${DURABLE_ENV_LOADED:-}" != "1" ]]; then
+  exec ./scripts/1password.sh env DURABLE_ENV_LOADED=1 bash tests/langgraph-crash.sh "$@"
+fi
+
 run_id="${1:-crash-$(date +%Y%m%d-%H%M%S)-$$}"
 printf 'Run ID: %s\n' "$run_id"
 
@@ -15,8 +19,10 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 echo 'Waiting for the first checkpoint...'
-until make --no-print-directory langgraph-status RUN_ID="$run_id" STATUS_ARGS=--json |
-  .venv/bin/python -c 'import json, sys; sys.exit(json.load(sys.stdin)["state"] == "unknown")'; do
+while true; do
+  status_json=$(make --no-print-directory langgraph-status RUN_ID="$run_id" STATUS_ARGS=--json)
+  state=$(.venv/bin/python -c 'import json, sys; print(json.load(sys.stdin)["state"])' <<< "$status_json")
+  if [[ "$state" != "unknown" ]]; then break; fi
   if ! kill -0 "$worker_pid" 2>/dev/null; then
     wait "$worker_pid"
     echo 'The worker exited before saving a checkpoint.' >&2

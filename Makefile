@@ -1,4 +1,4 @@
-.PHONY: setup check up down postgres langgraph-run langgraph-status langgraph-resume
+.PHONY: setup check dbos-run dbos-status dbos-resume up down postgres langgraph-run langgraph-status langgraph-resume
 
 setup:
 	uv sync --locked --all-packages
@@ -7,6 +7,7 @@ setup:
 check:
 	uv run --locked --package weather-core python -m unittest discover -s core/tests
 	uv run --locked --package langgraph-report python -m unittest discover -s packages/langgraph/tests
+	uv run --locked --package dbos-report python -m unittest discover -s packages/pydantic-dbos/tests
 
 UV_ENV_FILE := $(if $(wildcard .env),--env-file .env)
 
@@ -30,3 +31,12 @@ langgraph-status:
 
 langgraph-resume:
 	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked langgraph-report resume "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+dbos-run:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked dbos-report run "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+dbos-status:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked dbos-report status "$(RUN_ID)" $(STATUS_ARGS)
+
+dbos-resume:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked dbos-report resume "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")

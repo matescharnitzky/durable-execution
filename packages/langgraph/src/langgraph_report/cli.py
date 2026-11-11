@@ -9,6 +9,7 @@ from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.postgres import PostgresSaver
+from psycopg.errors import UndefinedColumn, UndefinedTable
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
@@ -23,13 +24,14 @@ app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
 
 @contextmanager
-def report_agent(run_id: str, command: str):
+def langgraph_agent(run_id: str, command: str):
     settings = Settings()
     configure_telemetry(settings)
     with PostgresSaver.from_conn_string(settings.database_url) as saver:
-        saver.setup()
+        if command != "status":
+            saver.setup()
         agent = create_agent(
-            model=ChatOpenAI(model=settings.openai_model),
+            model=ChatOpenAI(model=settings.openai_model, model_kwargs={"parallel_tool_calls": False}),
             tools=[web_search],
             system_prompt=SYSTEM_PROMPT,
             checkpointer=saver,
@@ -57,7 +59,7 @@ def run(
     run_id: str,
     output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
-    with report_agent(run_id, "run") as (agent, config):
+    with langgraph_agent(run_id, "run") as (agent, config):
         if agent.get_state(config).values:
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
         result = agent.invoke(
@@ -73,8 +75,16 @@ def status(
     run_id: str,
     as_json: Annotated[bool, typer.Option("--json", help="Return machine-readable status")] = False,
 ) -> None:
-    with report_agent(run_id, "status") as (agent, config):
-        state = agent.get_state(config)
+    with langgraph_agent(run_id, "status") as (agent, config):
+        try:
+            state = agent.get_state(config)
+        except (UndefinedTable, UndefinedColumn):
+            # A new run may still be creating or migrating its checkpoint tables.
+            if as_json:
+                typer.echo(json.dumps({"run_id": run_id, "state": "unknown", "next": []}))
+            else:
+                typer.echo(f"Run: {run_id}\nState: unknown\nNo saved turns.")
+            return
         messages = state.values.get("messages", [])
         complete = bool(messages) and isinstance(messages[-1], AIMessage) and not state.next
         summary = {
@@ -117,7 +127,7 @@ def resume(
     run_id: str,
     output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
-    with report_agent(run_id, "resume") as (agent, config):
+    with langgraph_agent(run_id, "resume") as (agent, config):
         state = agent.get_state(config)
         if not state.values:
             raise typer.BadParameter("Unknown run ID.", param_hint="run_id")

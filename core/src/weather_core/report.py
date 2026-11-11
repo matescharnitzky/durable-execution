@@ -12,15 +12,19 @@ from urllib.parse import urlsplit
 from jsonschema import Draft202012Validator
 
 CORE = files("weather_core")
+REPORT_SCHEMA = json.loads(CORE.joinpath("report_schema.json").read_text(encoding="utf-8"))
 VALIDATOR = Draft202012Validator(
-    json.loads(CORE.joinpath("report_schema.json").read_text(encoding="utf-8")),
+    REPORT_SCHEMA,
     format_checker=Draft202012Validator.FORMAT_CHECKER,
 )
 
 
 def validate_report(result: dict) -> dict:
     VALIDATOR.validate(result)
-    if any(row["low_c"] > row["high_c"] for row in result["forecasts"]):
+    if any(
+        row["low_c"] is not None and row["high_c"] is not None and row["low_c"] > row["high_c"]
+        for row in result["forecasts"]
+    ):
         raise ValueError("Forecast low exceeds its high")
     return result
 
@@ -33,6 +37,13 @@ def write_report(path: Path | None, report: dict, *, experiment: str) -> Path:
     rows = []
     for row in forecasts:
         city, _, country = row["city"].partition(", ")
+        low = "—" if row["low_c"] is None else f'{row["low_c"]:g}°'
+        high = "—" if row["high_c"] is None else f'{row["high_c"]:g}°'
+        temperatures = (
+            '<span class="unavailable">Unavailable</span>'
+            if row["low_c"] is None and row["high_c"] is None
+            else f'<span class="low">{low}</span><span class="range-line" aria-hidden="true"></span><strong>{high}</strong>'
+        )
         sources = "".join(
             f'<a href="{escape(src["url"])}" title="{escape(src["title"])}">'
             f'{escape(urlsplit(src["url"]).hostname or src["title"])} <span aria-hidden="true">↗</span></a>'
@@ -41,11 +52,12 @@ def write_report(path: Path | None, report: dict, *, experiment: str) -> Path:
         rows.append(
             f'<tr><th scope="row" aria-label="{escape(row["city"])}"><span class="city">{escape(city)}</span>'
             f'<span class="country">{escape(country)}</span></th>'
-            f'<td class="temperatures"><span class="low">{row["low_c"]:g}°</span>'
-            f'<span class="range-line" aria-hidden="true"></span><strong>{row["high_c"]:g}°</strong></td>'
+            f'<td class="temperatures">{temperatures}</td>'
             f'<td class="conditions">{escape(row["conditions"])}</td>'
-            f'<td class="sources">{sources}</td></tr>'
+            f'<td class="sources">{sources or "No verified source"}</td></tr>'
         )
+    lows = [row["low_c"] for row in forecasts if row["low_c"] is not None]
+    highs = [row["high_c"] for row in forecasts if row["high_c"] is not None]
     forecast_date = date.fromisoformat(report["forecast_date"])
     template = Template(CORE.joinpath("report_template.html").read_text(encoding="utf-8"))
     html = template.substitute(
@@ -54,8 +66,8 @@ def write_report(path: Path | None, report: dict, *, experiment: str) -> Path:
         display_date=forecast_date.strftime("%A, %d %B %Y"),
         summary=escape(report["summary"]),
         city_count=len(forecasts),
-        lowest=f'{min(row["low_c"] for row in forecasts):g}',
-        highest=f'{max(row["high_c"] for row in forecasts):g}',
+        lowest=f'{min(lows):g}°' if lows else "—",
+        highest=f'{max(highs):g}°' if highs else "—",
         rows="".join(rows),
         generated=generated.strftime("%d %b %Y · %H:%M UTC"),
     )
