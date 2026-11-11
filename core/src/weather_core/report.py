@@ -12,8 +12,9 @@ from urllib.parse import urlsplit
 from jsonschema import Draft202012Validator
 
 CORE = files("weather_core")
+REPORT_SCHEMA = json.loads(CORE.joinpath("report_schema.json").read_text(encoding="utf-8"))
 VALIDATOR = Draft202012Validator(
-    json.loads(CORE.joinpath("report_schema.json").read_text(encoding="utf-8")),
+    REPORT_SCHEMA,
     format_checker=Draft202012Validator.FORMAT_CHECKER,
 )
 

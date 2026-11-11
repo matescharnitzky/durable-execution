@@ -1,47 +1,33 @@
-"""Weather agent for the DBOS workflow."""
-
-import json
-import os
-
-from openai import AsyncOpenAI
-from pydantic_ai import Agent, WebSearchTool
+import logfire
+from dbos import DBOS
+from pydantic_ai import Agent, NativeOutput, StructuredDict, WebSearchTool
 from pydantic_ai.capabilities import Instrumentation, NativeTool
+from pydantic_ai.durable_exec.dbos import DBOSDurability
 from pydantic_ai.models.instrumented import InstrumentationSettings
 from pydantic_ai.models.openai import OpenAIResponsesModel
-from pydantic_ai.providers.openai import OpenAIProvider
 
-from dbos_report.report import FIXTURES, validate_batch
+from dbos_report.config import Settings
+from weather_core.prompts import SYSTEM_PROMPT
+from weather_core.report import REPORT_SCHEMA, validate_report
 
-SEARCH = json.loads(FIXTURES.joinpath("search.json").read_text(encoding="utf-8"))
-
-
-async def api_key() -> str:
-    return os.environ["OPENAI_API_KEY"]
-
-
-def report_agent(durability):
-    client = AsyncOpenAI(api_key=api_key, max_retries=0, timeout=90)
-    model = OpenAIResponsesModel(
-        os.getenv("OPENAI_MODEL") or SEARCH["model"],
-        provider=OpenAIProvider(openai_client=client),
-    )
-    return Agent(
-        model,
-        name="dbos_weather",
-        instructions=SEARCH["instructions"],
-        capabilities=[
-            NativeTool(WebSearchTool()),
-            durability,
-            Instrumentation(InstrumentationSettings(include_content=False)),
-        ],
-    )
+agent = Agent(
+    OpenAIResponsesModel(Settings().openai_model),
+    name="dbos_weather",
+    instructions=SYSTEM_PROMPT,
+    output_type=NativeOutput(StructuredDict(REPORT_SCHEMA), strict=True),
+    capabilities=[
+        NativeTool(WebSearchTool()),
+        DBOSDurability(),
+        Instrumentation(InstrumentationSettings(include_content=False)),
+    ],
+)
 
 
-async def forecast_batches(agent, run_id: str, forecast_date: str, batches: list[list[str]]) -> list[dict]:
-    results = []
-    for batch, cities in enumerate(batches, start=1):
-        prompt = json.dumps({"forecast_date": forecast_date, "cities": cities})
-        result = await agent.run(prompt, metadata={"durable.run_id": run_id, "durable.batch": batch})
-        text = result.output.strip().removeprefix("```json").removesuffix("```").strip()
-        results.append(validate_batch(json.loads(text), forecast_date, cities))
-    return results
+@DBOS.workflow()
+async def report(run_id: str) -> dict:
+    with logfire.span("DBOS report", **{"durable.runtime": "dbos", "durable.run_id": run_id}):
+        result = await agent.run(
+            "Generate the weather report.",
+            metadata={"durable.runtime": "dbos", "durable.run_id": run_id},
+        )
+        return validate_report(result.output)

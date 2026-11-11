@@ -1,60 +1,88 @@
 import json
-import os
+from contextlib import contextmanager
+from pathlib import Path
+from textwrap import shorten
+from typing import Annotated
 
 import logfire
+import typer
 from dbos import DBOS, DBOSClient, SetWorkflowID
-from pydantic_ai.durable_exec.dbos import DBOSDurability
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
+from sqlalchemy.exc import ProgrammingError
 
-from dbos_report.agent import forecast_batches, report_agent
+from dbos_report.agent import report
+from dbos_report.config import Settings
+from weather_core.report import validate_report, write_report
 
-from dbos_report.report import arguments, batches, write_report
+app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
 
-def main():
-    args = arguments("dbos")
-    logfire.configure(service_name="dbos-report", send_to_logfire=bool(os.getenv("LOGFIRE_TOKEN")), console=False)
-    database = os.getenv("DBOS_SYSTEM_DATABASE_URL") or (
-        "postgresql://weather:weather-local@127.0.0.1:55432/weather_dbos"
-    )
-    if args.command == "status":
-        client = DBOSClient(system_database_url=database)
-        try:
-            statuses = client.list_workflows(workflow_ids=[args.run_id], load_input=False, load_output=False)
-            native = statuses[0].status if statuses else "UNKNOWN"
-            steps = client.list_workflow_steps(args.run_id, load_output=False) if statuses else []
-            print(json.dumps({
-                "run_id": args.run_id,
-                "state": {"SUCCESS": "complete", "UNKNOWN": "unknown", "ERROR": "failed"}.get(native, "pending"),
-                "workflow_status": native,
-                "steps": [step["function_name"] for step in steps],
-            }))
-        finally:
-            client.destroy()
-        return
-
-    DBOS(config={"name": "weather-report", "system_database_url": database})
-    agent = report_agent(DBOSDurability(model_step_config={
-        "retries_allowed": True, "max_attempts": 3, "interval_seconds": 1.0,
-    }))
-
-    @DBOS.workflow()
-    async def report(run_id: str, forecast_date: str, city_batches: list[list[str]]) -> list[dict]:
-        with logfire.span("DBOS report", **{"durable.runtime": "dbos", "durable.run_id": run_id}):
-            return await forecast_batches(agent, run_id, forecast_date, city_batches)
-
+@contextmanager
+def runtime():
+    settings = Settings()
+    logfire.configure(service_name="dbos-report", send_to_logfire=settings.logfire_token is not None, console=False)
+    DBOS(config={"name": "weather-report", "system_database_url": settings.database_url, "dbos_system_schema": "dbos"})
     DBOS.launch()
     try:
-        with logfire.span(
-            "DBOS {command}", command=args.command,
-            **{"durable.runtime": "dbos", "durable.run_id": args.run_id},
-        ):
-            if args.command == "run":
-                if DBOS.get_workflow_status(args.run_id):
-                    raise SystemExit("Run ID already exists. Use resume.")
-                with SetWorkflowID(args.run_id):
-                    handle = DBOS.start_workflow(report, args.run_id, args.date.isoformat(), batches(args.fixture))
-            else:
-                handle = DBOS.retrieve_workflow(args.run_id)
-            write_report(args.output, handle.get_result())
+        yield
     finally:
         DBOS.destroy()
+
+
+def save_report(output: Path | None, answer: dict) -> None:
+    path = write_report(output, validate_report(answer), experiment="DBOS")
+    typer.echo(f"Report saved to {path.resolve()}", err=True)
+
+
+@app.command()
+def run(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
+    with runtime():
+        if DBOS.get_workflow_status(run_id):
+            raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
+        with SetWorkflowID(run_id):
+            handle = DBOS.start_workflow(report, run_id)
+        save_report(output, handle.get_result())
+
+
+@app.command()
+def status(run_id: str, as_json: Annotated[bool, typer.Option("--json")] = False) -> None:
+    client = DBOSClient(system_database_url=Settings().database_url, dbos_system_schema="dbos")
+    try:
+        try:
+            workflows = client.list_workflows(workflow_ids=[run_id], load_input=False, load_output=False)
+        except ProgrammingError as error:
+            if getattr(error.orig, "sqlstate", None) != "42P01":
+                raise
+            workflows = []
+        native = workflows[0].status if workflows else "UNKNOWN"
+        state = {"SUCCESS": "complete", "UNKNOWN": "unknown", "ERROR": "failed", "CANCELLED": "failed"}.get(native, "pending")
+        steps = client.list_workflow_steps(run_id, load_output=not as_json) if workflows else []
+        if as_json:
+            typer.echo(json.dumps({"run_id": run_id, "state": state, "workflow_status": native}))
+            return
+        console = Console()
+        console.print(f"Run: {run_id}\nState: {state} · DBOS: {native}", markup=False)
+        table = Table(title="Steps saved in PostgreSQL", header_style="bold cyan")
+        table.add_column("Step", justify="right")
+        table.add_column("Function")
+        table.add_column("Saved result", max_width=96)
+        for step in steps:
+            table.add_row(
+                str(step["function_id"]), Text(step["function_name"]),
+                Text(shorten(str(step["error"] or step["output"] or "—"), width=240, placeholder="…")),
+            )
+        console.print(table)
+    finally:
+        client.destroy()
+
+
+@app.command()
+def resume(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
+    with runtime():
+        state = DBOS.get_workflow_status(run_id)
+        if state is None:
+            raise typer.BadParameter("Unknown run ID.", param_hint="run_id")
+        handle = DBOS.resume_workflow(run_id) if state.status in {"ERROR", "CANCELLED", "SUSPENDED"} else DBOS.retrieve_workflow(run_id)
+        save_report(output, handle.get_result())
