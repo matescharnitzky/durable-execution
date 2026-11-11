@@ -29,7 +29,6 @@ def report_agent(run_id: str, command: str):
             tools=[web_search],
             system_prompt=SYSTEM_PROMPT,
             checkpointer=saver,
-            name="Weather report",
         )
         config = {
             "configurable": {"thread_id": run_id},

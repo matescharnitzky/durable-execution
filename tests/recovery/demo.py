@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 import shlex
 import socket
 import subprocess
@@ -31,6 +32,10 @@ def scenario(command: list[str], fault: str, worker: list[str] | None, search_to
             assert self.path in ("/v1/responses", "/v1/chat/completions"), self.path
             completions = self.path == "/v1/chat/completions"
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            if completions:
+                for message in body["messages"]:
+                    if "name" in message:
+                        assert re.fullmatch(r"[^\s<|\\/>]+", message["name"]), "Invalid message name"
             tools = body.get("tools", [])
             hosted_search = any(tool["type"] in ("web_search", "web_search_preview") for tool in tools)
             request_input = body["messages"] if completions else body["input"]
