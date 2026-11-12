@@ -38,6 +38,6 @@ Temporal resumes automatically once a worker is available and the server detects
 
 The worker and client load credentials through the same 1Password helper as LangGraph. Set `LOGFIRE_TOKEN` to enable Pydantic AI’s native `LogfirePlugin` with replay-safe Temporal tracing. `observability.py` configures Logfire and instruments Pydantic AI with content disabled; the plugin owns the Temporal instrumentation. Agent metadata and native Temporal spans identify the workflow. The plugin’s optional Temporal metrics exporter is disabled because the pinned integration uses gRPC against Logfire’s HTTP metrics endpoint; model timing and token usage remain in traces.
 
-The synchronous Typer commands share `temporal_runtime()`, which manages an asyncio runner, connects the client with the native plugins, and flushes telemetry on exit. Temporal’s SDK operations still run asynchronously on that managed loop.
+`cli.py` defines the Typer arguments and explicitly imports the async `run`, `resume`, `status`, and `worker` functions from `commands.py`. Each callback calls its imported function through `asyncio.run()`. The async `temporal_runtime()` context manager connects the client with the native plugins and flushes telemetry on exit. All SDK operations for a command use that command’s event loop, which `asyncio.run()` closes when it finishes.
 
 [Pydantic AI’s Temporal integration](https://pydantic.dev/docs/ai/capabilities/durable_execution/temporal/)
