@@ -1,1 +1,4 @@
-CREATE SCHEMA IF NOT EXISTS langgraph;
+CREATE DATABASE langgraph;
+CREATE DATABASE dbos;
+CREATE DATABASE temporal;
+CREATE DATABASE temporal_visibility;

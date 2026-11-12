@@ -8,7 +8,6 @@ class Settings(BaseSettings):
 
     postgres_user: str = "weather"
     postgres_password: SecretStr = SecretStr("weather-local")
-    postgres_db: str = "weather"
     openai_model: str = "gpt-5.4-mini"
     logfire_token: SecretStr | None = None
 
@@ -17,5 +16,5 @@ class Settings(BaseSettings):
         return URL.create(
             "postgresql+psycopg", username=self.postgres_user,
             password=self.postgres_password.get_secret_value(),
-            host="127.0.0.1", port=5432, database=self.postgres_db,
+            host="127.0.0.1", port=5432, database="dbos",
         ).render_as_string(hide_password=False)

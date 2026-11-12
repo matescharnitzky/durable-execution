@@ -10,7 +10,7 @@ make dbos-resume RUN_ID=report-1
 
 Use a fresh ID for each new execution. The shared prompt asks the agent to check tomorrow’s date first, then research five cities in order, with one city per search and a model turn between searches. Parallel function calls are disabled through the model’s native setting. The main Pydantic AI agent calls a `web_search` function tool, which uses OpenAI’s hosted search in a separate request. The final answer uses strict structured output with the shared report schema. Reports use the core HTML renderer and are saved under `artifacts/dbos/report_dbos_<UTC timestamp>.html`. Set `OUTPUT` to override the path.
 
-DBOS uses `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` from `.env`, connects on localhost port 5432, and stores its tables in the `dbos` schema. The runtime creates and migrates its own tables. In pgAdmin, browse **weather → Schemas → dbos → Tables**.
+DBOS uses `POSTGRES_USER` and `POSTGRES_PASSWORD` from `.env`, connects to the `dbos` database on localhost port 5432, and stores its tables in the native `dbos` schema. The runtime creates and migrates its own tables. In pgAdmin, browse **dbos → Schemas → dbos → Tables**.
 
 ## Crash and resume
 
