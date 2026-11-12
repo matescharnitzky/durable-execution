@@ -18,7 +18,7 @@ The shared prompt asks the agent to check tomorrow’s date first, then research
 
 The search tool returns answer text with native provider citations. The shared report contract uses `null` for unknown temperatures and an empty list for missing sources; the HTML renderer shows these gaps explicitly and excludes unknown values from temperature statistics. Workflow completion does not establish forecast accuracy.
 
-The local Temporal development server persists its native history to a Docker volume. Its API is on port 7233 and UI at [localhost:8233](http://localhost:8233). Its native SQLite store is separate from the PostgreSQL schemas used by LangGraph and DBOS. `TEMPORAL_ADDRESS` can override the server connection. `make down` removes the volume and workflow history.
+The local self-hosted Temporal Server uses the shared PostgreSQL instance: `temporal` stores execution state and history; `temporal_visibility` stores searchable workflow metadata. Compose initializes Temporal’s native schemas and default namespace, then starts a separate UI at [localhost:8233](http://localhost:8233). The API stays on port 7233. `TEMPORAL_ADDRESS` can override the server connection. In pgAdmin, browse either database’s **Schemas → public → Tables**. `make down` removes PostgreSQL’s volume and all execution history. After switching from the previous layout, recreate local volumes with `make down` and `make up`; no migration is included.
 
 ## Crash and resume
 

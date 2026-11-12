@@ -24,7 +24,7 @@ make up
 make langgraph-run RUN_ID=report-1
 ```
 
-LangGraph stores checkpoints in `weather.langgraph` on `localhost:5432`; pgAdmin is available at [localhost:80](http://localhost:80).
+LangGraph stores checkpoints in the `langgraph` database on `localhost:5432`; pgAdmin is available at [localhost:80](http://localhost:80).
 
 Reports are saved as `artifacts/langgraph/report_langgraph_<UTC timestamp>.html`. Use a fresh run ID for each new execution. Set `OUTPUT=artifacts/custom.html` to choose a filename.
 
@@ -47,11 +47,11 @@ make dbos-status RUN_ID=report-1
 make dbos-resume RUN_ID=report-1
 ```
 
-Start services with `make up` first. DBOS uses the `weather.dbos` schema and saves reports under `artifacts/dbos/`. See [DBOS details](packages/pydantic-dbos/README.md) for its crash demo and native recovery behavior.
+Start services with `make up` first. DBOS uses the `dbos` database and saves reports under `artifacts/dbos/`. See [DBOS details](packages/pydantic-dbos/README.md) for its crash demo and native recovery behavior.
 
 ## Temporal
 
-Start services with `make up`, then run `make temporal-worker` in another terminal.
+Temporal stores history in `temporal` and search metadata in `temporal_visibility` on the same PostgreSQL instance. Its UI is at [localhost:8233](http://localhost:8233). Start services with `make up`, then run `make temporal-worker` in another terminal.
 
 ```sh
 make temporal-run RUN_ID=report-1
