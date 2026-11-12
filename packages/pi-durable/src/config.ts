@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 const core = new URL("../../../core/src/weather_core/", import.meta.url);
 
 export const settings = {
-  openaiModel: process.env.OPENAI_MODEL || "gpt-5.4-mini",
+  openaiModel: process.env.OPENAI_MODEL || "gpt-6-luna",
   openaiBaseUrl: process.env.OPENAI_BASE_URL,
   stateDirectory: process.env.PI_STATE_DIR || "artifacts/pi/state",
 };

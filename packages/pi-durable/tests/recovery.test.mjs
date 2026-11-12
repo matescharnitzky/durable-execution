@@ -13,7 +13,7 @@ const args = ["--experimental-test-module-mocks", "--import", provider, cli];
 for (const boundary of ["after-search", "during-search"]) {
   test(`Pi recovers ${boundary} with committed tool results in model context`, { timeout: 30000 }, async () => {
     const directory = await mkdtemp(join(tmpdir(), "pi-recovery-"));
-    const env = { ...process.env, OPENAI_API_KEY: "fixture", OPENAI_MODEL: "gpt-5.4-mini", LOGFIRE_TOKEN: "", PI_TEST_BLOCK: "", PI_TEST_FAIL: "", PI_TEST_AUDIT: join(directory, "requests.jsonl"), PI_STATE_DIR: join(directory, "state") };
+    const env = { ...process.env, OPENAI_API_KEY: "fixture", OPENAI_MODEL: "gpt-6-luna", LOGFIRE_TOKEN: "", PI_TEST_BLOCK: "", PI_TEST_FAIL: "", PI_TEST_AUDIT: join(directory, "requests.jsonl"), PI_STATE_DIR: join(directory, "state") };
     const worker = spawn(process.execPath, [...args, "run", "offline-crash"], {
       env: { ...env, PI_TEST_BLOCK: boundary }, stdio: ["ignore", "pipe", "pipe"],
     });
@@ -77,7 +77,7 @@ for (const boundary of ["after-search", "during-search"]) {
 
 test("Pi reports the native terminal provider error", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pi-failure-"));
-  const env = { ...process.env, OPENAI_API_KEY: "fixture", OPENAI_MODEL: "gpt-5.4-mini", LOGFIRE_TOKEN: "",
+  const env = { ...process.env, OPENAI_API_KEY: "fixture", OPENAI_MODEL: "gpt-6-luna", LOGFIRE_TOKEN: "",
     PI_TEST_BLOCK: "", PI_TEST_FAIL: "1", PI_TEST_AUDIT: "", PI_STATE_DIR: directory };
   try {
     const result = spawnSync(process.execPath, [...args, "run", "failed"], { env, encoding: "utf8", timeout: 15000 });
