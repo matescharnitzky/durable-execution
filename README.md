@@ -1,4 +1,4 @@
-# Durable execution lab
+# Durable execution
 
 Compare how LangGraph, Pydantic AI with DBOS, Pydantic AI with Temporal, and Pi Durable recover interrupted weather report runs.
 
