@@ -26,6 +26,7 @@ agent = Agent(
 
 @DBOS.workflow()
 def report(run_id: str) -> dict:
+    """Generate and validate a report within a durable DBOS workflow."""
     result = agent.run_sync(
         "Generate the weather report.",
         metadata={"durable.runtime": "dbos", "durable.run_id": run_id},

@@ -19,15 +19,19 @@ from langgraph_report.tools import web_search
 from weather_core.prompts import SYSTEM_PROMPT
 from weather_core.report import validate_report, write_report
 
+
 @contextmanager
 def langgraph_agent(run_id: str, command: str):
+    """Yield a PostgreSQL-checkpointed agent and its run configuration."""
     settings = Settings()
     configure_telemetry(settings)
     with PostgresSaver.from_conn_string(settings.database_url) as saver:
         if command != "status":
             saver.setup()
         agent = create_agent(
-            model=ChatOpenAI(model=settings.openai_model, model_kwargs={"parallel_tool_calls": False}),
+            model=ChatOpenAI(
+                model=settings.openai_model, model_kwargs={"parallel_tool_calls": False}
+            ),
             tools=[web_search],
             system_prompt=SYSTEM_PROMPT,
             checkpointer=saver,
@@ -44,6 +48,7 @@ def langgraph_agent(run_id: str, command: str):
 
 
 def save_report(output: Path | None, messages) -> None:
+    """Validate the final assistant message and write its HTML report."""
     answer = messages[-1].text.strip().removeprefix("```json").removesuffix("```").strip()
     report = validate_report(json.loads(answer))
     path = write_report(output, report, experiment="LangGraph")
@@ -54,6 +59,7 @@ def run(
     run_id: str,
     output: Path | None = None,
 ) -> None:
+    """Start a new checkpointed report and export the result."""
     with langgraph_agent(run_id, "run") as (agent, config):
         if agent.get_state(config).values:
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
@@ -69,6 +75,7 @@ def status(
     run_id: str,
     as_json: bool = False,
 ) -> None:
+    """Show saved messages and the next graph nodes for a run."""
     with langgraph_agent(run_id, "status") as (agent, config):
         try:
             state = agent.get_state(config)
@@ -92,7 +99,9 @@ def status(
 
         console = Console()
         console.print(f"Run: {run_id}", markup=False)
-        console.print(f"State: {summary['state']} · Next: {', '.join(state.next) or '—'}", markup=False)
+        console.print(
+            f"State: {summary['state']} · Next: {', '.join(state.next) or '—'}", markup=False
+        )
         if not messages:
             console.print("No saved turns.")
             return
@@ -112,7 +121,9 @@ def status(
                 )
             elif isinstance(message, ToolMessage):
                 kind = f"Tool: {message.name or 'result'}"
-            table.add_row(str(number), Text(kind), Text(shorten(content, width=240, placeholder="…")))
+            table.add_row(
+                str(number), Text(kind), Text(shorten(content, width=240, placeholder="…"))
+            )
         console.print(table)
 
 
@@ -120,6 +131,7 @@ def resume(
     run_id: str,
     output: Path | None = None,
 ) -> None:
+    """Continue from the saved checkpoint or export a completed report."""
     with langgraph_agent(run_id, "resume") as (agent, config):
         state = agent.get_state(config)
         if not state.values:

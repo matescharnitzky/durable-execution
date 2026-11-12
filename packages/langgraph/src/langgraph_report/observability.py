@@ -7,6 +7,7 @@ from langgraph_report.config import Settings
 
 def configure_telemetry(settings: Settings) -> None:
     # Set tracing options before LangSmith creates its client on the first run.
+    """Configure Logfire tracing with model inputs and outputs hidden."""
     os.environ.pop("LANGSMITH_TRACING_MODE", None)
     os.environ.update(
         LANGSMITH_TRACING="true",

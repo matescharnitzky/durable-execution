@@ -10,20 +10,28 @@ app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
 
 @app.command("run")
-def run_command(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
+def run_command(
+    run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None
+) -> None:
+    """Generate a weather report under a new run ID."""
     asyncio.run(run(run_id, output))
 
 
 @app.command("resume")
-def resume_command(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
+def resume_command(
+    run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None
+) -> None:
+    """Wait for an existing workflow and export its report."""
     asyncio.run(resume(run_id, output))
 
 
 @app.command("status")
 def status_command(run_id: str, as_json: Annotated[bool, typer.Option("--json")] = False) -> None:
+    """Show saved execution state as a table or JSON."""
     asyncio.run(status(run_id, as_json))
 
 
 @app.command("worker")
 def worker_command() -> None:
+    """Run the worker that executes workflow and activity tasks."""
     asyncio.run(worker())

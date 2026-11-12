@@ -15,8 +15,8 @@ class ReportContractTest(unittest.TestCase):
         report = json.loads(TESTS.joinpath("report.json").read_text(encoding="utf-8"))
 
         Draft202012Validator.check_schema(schema)
-        Draft202012Validator(
-            schema, format_checker=Draft202012Validator.FORMAT_CHECKER
-        ).validate(report)
+        Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER).validate(
+            report
+        )
         for forecast in report["forecasts"]:
             self.assertLessEqual(forecast["low_c"], forecast["high_c"])

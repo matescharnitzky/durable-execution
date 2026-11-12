@@ -14,10 +14,17 @@ class DurableSearchTest(unittest.TestCase):
         worker = Path(__file__).with_name("recovery_worker.py")
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "dbos.sqlite"
-            env = {**os.environ, "DBOS_TEST_DATABASE_URL": f"sqlite:///{database}", "PYDANTIC_AI_NO_BANNER": "1"}
+            env = {
+                **os.environ,
+                "DBOS_TEST_DATABASE_URL": f"sqlite:///{database}",
+                "PYDANTIC_AI_NO_BANNER": "1",
+            }
             process = subprocess.Popen(
-                [sys.executable, str(worker)], env={**env, "DBOS_TEST_PHASE": "block"},
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                [sys.executable, str(worker)],
+                env={**env, "DBOS_TEST_PHASE": "block"},
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
             )
             try:
                 deadline = time.monotonic() + 20
@@ -36,10 +43,15 @@ class DurableSearchTest(unittest.TestCase):
                         "SELECT function_name FROM operation_outputs WHERE workflow_uuid = ? ORDER BY function_id",
                         ("search-replay",),
                     ).fetchall()
-                self.assertEqual([name for (name,) in steps], ["dbos_replay_test__model.request", "web_search"])
+                self.assertEqual(
+                    [name for (name,) in steps], ["dbos_replay_test__model.request", "web_search"]
+                )
                 resumed = subprocess.run(
-                    [sys.executable, str(worker)], env={**env, "DBOS_TEST_PHASE": "resume"},
-                    capture_output=True, text=True, timeout=20,
+                    [sys.executable, str(worker)],
+                    env={**env, "DBOS_TEST_PHASE": "resume"},
+                    capture_output=True,
+                    text=True,
+                    timeout=20,
                 )
                 self.assertEqual(resumed.returncode, 0, resumed.stderr)
                 self.assertIn("REPORT_COMPLETED_WITH_SAVED_SEARCH", resumed.stdout)

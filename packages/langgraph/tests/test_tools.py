@@ -9,12 +9,21 @@ from langgraph_report.tools import web_search
 class SearchSourcesTest(unittest.TestCase):
     def test_provider_citations_reach_the_agent_even_when_text_omits_urls(self):
         response = AIMessage(
-            content=[{
-                "type": "text", "text": "Cloudy", "annotations": [{
-                    "type": "url_citation", "url": "https://example.com/forecast",
-                    "title": "Test source", "start_index": 0, "end_index": 6,
-                }],
-            }],
+            content=[
+                {
+                    "type": "text",
+                    "text": "Cloudy",
+                    "annotations": [
+                        {
+                            "type": "url_citation",
+                            "url": "https://example.com/forecast",
+                            "title": "Test source",
+                            "start_index": 0,
+                            "end_index": 6,
+                        }
+                    ],
+                }
+            ],
             response_metadata={"model_provider": "openai"},
         )
         with patch("langgraph_report.tools.ChatOpenAI") as model:

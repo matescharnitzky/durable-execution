@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-const core = new URL("../../../core/src/weather_core/", import.meta.url);
+const core = new URL("../../core/src/weather_core/", import.meta.url);
 
 export const settings = {
   openaiModel: process.env.OPENAI_MODEL || "gpt-6-luna",

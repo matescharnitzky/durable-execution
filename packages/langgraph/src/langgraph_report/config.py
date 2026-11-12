@@ -4,6 +4,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Load LangGraph settings from the environment with local defaults."""
+
     model_config = SettingsConfigDict(env_ignore_empty=True)
 
     postgres_user: str = "weather"
@@ -14,6 +16,7 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
+        """Build the checkpoint connection string, allowing an explicit override."""
         return self.langgraph_database_url or make_conninfo(
             host="127.0.0.1",
             port=5432,

@@ -1,4 +1,4 @@
-# Durable execution lab
+# Durable execution
 
 Compare how LangGraph, Pydantic AI with DBOS, Pydantic AI with Temporal, and Pi Durable recover interrupted weather report runs.
 
@@ -10,6 +10,8 @@ Install uv 0.13.5, Node from `.nvmrc`, and Docker with Compose. uv installs Pyth
 make setup
 make check
 ```
+
+`make check` runs linting, formatting checks, repository hygiene checks, TypeScript type checking, and the credential-free tests. Use `make format` to apply safe Python and JavaScript/JSON fixes, `make lint` for checks without tests, or `make test` for tests and TypeScript checking. Public Python classes, methods, and functions require short docstrings; tests are exempt. Optionally run `make hooks` to enable the same lint checks before commits.
 
 Copy `.env.example` to `.env` if you haven't configured it yet. Set `OPENAI_API_KEY`, `PGADMIN_EMAIL`, and `PGADMIN_PASSWORD`, plus optionally `LOGFIRE_TOKEN`. Set `POSTGRES_USER` and `POSTGRES_PASSWORD` to use your database credentials; otherwise local defaults apply. The OpenAI key covers both model calls and web search. All implementations default to `gpt-6-luna`; `OPENAI_MODEL` overrides the model.
 

@@ -22,10 +22,14 @@ from weather_core.report import write_report
 
 @asynccontextmanager
 async def temporal_runtime():
+    """Connect the Temporal client and flush telemetry on exit."""
     try:
         client = await Client.connect(
             Settings().temporal_address,
-            plugins=[PydanticAIPlugin(), LogfirePlugin(setup_logfire=configure_telemetry, metrics=False)],
+            plugins=[
+                PydanticAIPlugin(),
+                LogfirePlugin(setup_logfire=configure_telemetry, metrics=False),
+            ],
         )
         yield client
     finally:
@@ -33,9 +37,12 @@ async def temporal_runtime():
 
 
 async def run(run_id: str, output: Path | None = None) -> None:
+    """Start a new Temporal workflow and export its report."""
     async with temporal_runtime() as client:
         handle = await client.start_workflow(
-            WeatherReport.run, id=run_id, task_queue=Settings().temporal_task_queue,
+            WeatherReport.run,
+            id=run_id,
+            task_queue=Settings().temporal_task_queue,
             id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
         )
         result = await handle.result()
@@ -44,6 +51,7 @@ async def run(run_id: str, output: Path | None = None) -> None:
 
 
 async def resume(run_id: str, output: Path | None = None) -> None:
+    """Wait for an existing workflow and export its report."""
     async with temporal_runtime() as client:
         result = await client.get_workflow_handle(run_id).result()
         path = write_report(output, result, experiment="Temporal")
@@ -51,6 +59,7 @@ async def resume(run_id: str, output: Path | None = None) -> None:
 
 
 async def status(run_id: str, as_json: bool = False) -> None:
+    """Show native workflow state, activity attempts, and saved results."""
     async with temporal_runtime() as client:
         handle = client.get_workflow_handle(run_id)
         try:
@@ -58,7 +67,11 @@ async def status(run_id: str, as_json: bool = False) -> None:
         except RPCError as error:
             if error.status != RPCStatusCode.NOT_FOUND:
                 raise
-            typer.echo(json.dumps({"run_id": run_id, "state": "unknown", "worker_started": False}) if as_json else "Unknown run ID.")
+            typer.echo(
+                json.dumps({"run_id": run_id, "state": "unknown", "worker_started": False})
+                if as_json
+                else "Unknown run ID."
+            )
             return
         native = description.status.name
         state = {"RUNNING": "pending", "COMPLETED": "complete"}.get(native, "failed")
@@ -71,20 +84,61 @@ async def status(run_id: str, as_json: bool = False) -> None:
                 rows.append((str(event.event_id), "Scheduled", attrs.activity_type.name))
             elif event.HasField("activity_task_started_event_attributes"):
                 started = True
-                rows.append((str(event.event_id), "Started", f"Attempt {event.activity_task_started_event_attributes.attempt}"))
+                rows.append(
+                    (
+                        str(event.event_id),
+                        "Started",
+                        f"Attempt {event.activity_task_started_event_attributes.attempt}",
+                    )
+                )
             elif event.HasField("activity_task_completed_event_attributes"):
-                values = await client.data_converter.decode(event.activity_task_completed_event_attributes.result.payloads)
-                rows.append((str(event.event_id), "Completed", shorten(str(values), width=240, placeholder="…")))
+                values = await client.data_converter.decode(
+                    event.activity_task_completed_event_attributes.result.payloads
+                )
+                rows.append(
+                    (
+                        str(event.event_id),
+                        "Completed",
+                        shorten(str(values), width=240, placeholder="…"),
+                    )
+                )
             elif event.HasField("activity_task_timed_out_event_attributes"):
-                rows.append((str(event.event_id), "Timed out", event.activity_task_timed_out_event_attributes.failure.message))
+                rows.append(
+                    (
+                        str(event.event_id),
+                        "Timed out",
+                        event.activity_task_timed_out_event_attributes.failure.message,
+                    )
+                )
             elif event.HasField("activity_task_failed_event_attributes"):
-                rows.append((str(event.event_id), "Failed", event.activity_task_failed_event_attributes.failure.message))
+                rows.append(
+                    (
+                        str(event.event_id),
+                        "Failed",
+                        event.activity_task_failed_event_attributes.failure.message,
+                    )
+                )
         for pending in description.raw_description.pending_activities:
             active = pending.HasField("last_started_time")
             started = started or active
-            rows.append((pending.activity_id, "Pending", f"{pending.activity_type.name} · attempt {pending.attempt}"))
+            rows.append(
+                (
+                    pending.activity_id,
+                    "Pending",
+                    f"{pending.activity_type.name} · attempt {pending.attempt}",
+                )
+            )
         if as_json:
-            typer.echo(json.dumps({"run_id": run_id, "state": state, "workflow_status": native, "worker_started": started}))
+            typer.echo(
+                json.dumps(
+                    {
+                        "run_id": run_id,
+                        "state": state,
+                        "workflow_status": native,
+                        "worker_started": started,
+                    }
+                )
+            )
             return
         console = Console()
         console.print(f"Run: {run_id}\nState: {state} · Temporal: {native}", markup=False)
@@ -98,5 +152,8 @@ async def status(run_id: str, as_json: bool = False) -> None:
 
 
 async def worker() -> None:
+    """Poll Temporal and execute registered workflows and activities."""
     async with temporal_runtime() as client:
-        await Worker(client, task_queue=Settings().temporal_task_queue, workflows=[WeatherReport]).run()
+        await Worker(
+            client, task_queue=Settings().temporal_task_queue, workflows=[WeatherReport]
+        ).run()

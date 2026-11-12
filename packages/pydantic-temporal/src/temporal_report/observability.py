@@ -4,6 +4,7 @@ from temporal_report.config import Settings
 
 
 def configure_telemetry() -> logfire.Logfire:
+    """Configure Logfire and Pydantic AI tracing with content disabled."""
     settings = Settings()
     instance = logfire.configure(
         service_name="temporal-report",

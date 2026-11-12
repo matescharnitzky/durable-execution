@@ -15,17 +15,25 @@ from dbos_report.agent import report
 from dbos_report.config import Settings
 from weather_core.report import validate_report, write_report
 
+
 @contextmanager
 def dbos_runtime():
+    """Launch DBOS with PostgreSQL storage and shut it down on exit."""
     settings = Settings()
-    logfire.configure(service_name="dbos-report", send_to_logfire=settings.logfire_token is not None, console=False)
-    DBOS(config={
-        "name": "weather-report",
-        "system_database_url": settings.database_url,
-        "dbos_system_schema": "dbos",
-        "enable_otlp": True,
-        "otel_attribute_format": "semconv",
-    })
+    logfire.configure(
+        service_name="dbos-report",
+        send_to_logfire=settings.logfire_token is not None,
+        console=False,
+    )
+    DBOS(
+        config={
+            "name": "weather-report",
+            "system_database_url": settings.database_url,
+            "dbos_system_schema": "dbos",
+            "enable_otlp": True,
+            "otel_attribute_format": "semconv",
+        }
+    )
     DBOS.launch()
     try:
         yield
@@ -34,11 +42,13 @@ def dbos_runtime():
 
 
 def save_report(output: Path | None, answer: dict) -> None:
+    """Validate the workflow result and write its HTML report."""
     path = write_report(output, validate_report(answer), experiment="DBOS")
     typer.echo(f"Report saved to {path.resolve()}", err=True)
 
 
 def run(run_id: str, output: Path | None = None) -> None:
+    """Start a new DBOS workflow and export its report."""
     with dbos_runtime():
         if DBOS.get_workflow_status(run_id):
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
@@ -48,16 +58,25 @@ def run(run_id: str, output: Path | None = None) -> None:
 
 
 def status(run_id: str, as_json: bool = False) -> None:
+    """Show native workflow state and saved DBOS steps."""
     client = DBOSClient(system_database_url=Settings().database_url, dbos_system_schema="dbos")
     try:
         try:
-            workflows = client.list_workflows(workflow_ids=[run_id], load_input=False, load_output=False)
+            workflows = client.list_workflows(
+                workflow_ids=[run_id], load_input=False, load_output=False
+            )
         except ProgrammingError as error:
             if getattr(error.orig, "sqlstate", None) != "42P01":
                 raise
             workflows = []
         native = workflows[0].status if workflows else "UNKNOWN"
-        state = {"SUCCESS": "complete", "UNKNOWN": "unknown", "ERROR": "failed", "CANCELLED": "failed", "MAX_RECOVERY_ATTEMPTS_EXCEEDED": "failed"}.get(native, "pending")
+        state = {
+            "SUCCESS": "complete",
+            "UNKNOWN": "unknown",
+            "ERROR": "failed",
+            "CANCELLED": "failed",
+            "MAX_RECOVERY_ATTEMPTS_EXCEEDED": "failed",
+        }.get(native, "pending")
         steps = client.list_workflow_steps(run_id, load_output=not as_json) if workflows else []
         if as_json:
             typer.echo(json.dumps({"run_id": run_id, "state": state, "workflow_status": native}))
@@ -73,8 +92,11 @@ def status(run_id: str, as_json: bool = False) -> None:
         table.add_column("Saved result", max_width=96)
         for step in steps:
             table.add_row(
-                str(step["function_id"]), Text(step["function_name"]),
-                Text(shorten(str(step["error"] or step["output"] or "—"), width=240, placeholder="…")),
+                str(step["function_id"]),
+                Text(step["function_name"]),
+                Text(
+                    shorten(str(step["error"] or step["output"] or "—"), width=240, placeholder="…")
+                ),
             )
         console.print(table)
     finally:
@@ -82,9 +104,14 @@ def status(run_id: str, as_json: bool = False) -> None:
 
 
 def resume(run_id: str, output: Path | None = None) -> None:
+    """Resume or follow an existing workflow and export its report."""
     with dbos_runtime():
         state = DBOS.get_workflow_status(run_id)
         if state is None:
             raise typer.BadParameter("Unknown run ID.", param_hint="run_id")
-        handle = DBOS.resume_workflow(run_id) if state.status in {"ERROR", "CANCELLED", "SUSPENDED", "MAX_RECOVERY_ATTEMPTS_EXCEEDED"} else DBOS.retrieve_workflow(run_id)
+        handle = (
+            DBOS.resume_workflow(run_id)
+            if state.status in {"ERROR", "CANCELLED", "SUSPENDED", "MAX_RECOVERY_ATTEMPTS_EXCEEDED"}
+            else DBOS.retrieve_workflow(run_id)
+        )
         save_report(output, handle.get_result())

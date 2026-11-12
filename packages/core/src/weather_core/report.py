@@ -1,7 +1,7 @@
 """Shared forecast validation and HTML report exports."""
 
 import json
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from html import escape
 from importlib.resources import files
 from pathlib import Path
@@ -20,6 +20,7 @@ VALIDATOR = Draft202012Validator(
 
 
 def validate_report(result: dict) -> dict:
+    """Validate report fields and temperature ranges, returning the report."""
     VALIDATOR.validate(result)
     if any(
         row["low_c"] is not None and row["high_c"] is not None and row["low_c"] > row["high_c"]
@@ -30,15 +31,20 @@ def validate_report(result: dict) -> dict:
 
 
 def write_report(path: Path | None, report: dict, *, experiment: str) -> Path:
-    generated = datetime.now(timezone.utc)
+    """Render and atomically save HTML, choosing a timestamped path when needed."""
+    generated = datetime.now(UTC)
     if path is None:
-        path = Path("artifacts") / experiment.lower() / f"report_{experiment.lower()}_{generated:%Y%m%d_%H%M%S_%f}Z.html"
+        path = (
+            Path("artifacts")
+            / experiment.lower()
+            / f"report_{experiment.lower()}_{generated:%Y%m%d_%H%M%S_%f}Z.html"
+        )
     forecasts = report["forecasts"]
     rows = []
     for row in forecasts:
         city, _, country = row["city"].partition(", ")
-        low = "—" if row["low_c"] is None else f'{row["low_c"]:g}°'
-        high = "—" if row["high_c"] is None else f'{row["high_c"]:g}°'
+        low = "—" if row["low_c"] is None else f"{row['low_c']:g}°"
+        high = "—" if row["high_c"] is None else f"{row['high_c']:g}°"
         temperatures = (
             '<span class="unavailable">Unavailable</span>'
             if row["low_c"] is None and row["high_c"] is None
@@ -66,8 +72,8 @@ def write_report(path: Path | None, report: dict, *, experiment: str) -> Path:
         display_date=forecast_date.strftime("%A, %d %B %Y"),
         summary=escape(report["summary"]),
         city_count=len(forecasts),
-        lowest=f'{min(lows):g}°' if lows else "—",
-        highest=f'{max(highs):g}°' if highs else "—",
+        lowest=f"{min(lows):g}°" if lows else "—",
+        highest=f"{max(highs):g}°" if highs else "—",
         rows="".join(rows),
         generated=generated.strftime("%d %b %Y · %H:%M UTC"),
     )

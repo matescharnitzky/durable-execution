@@ -16,7 +16,9 @@ class ReportOutputTest(unittest.TestCase):
             row.update(low_c=None, high_c=None, conditions="Forecast unavailable", sources=[])
         validate_report(report)
         with tempfile.TemporaryDirectory() as directory:
-            html = write_report(Path(directory) / "report.html", report, experiment="DBOS").read_text()
+            html = write_report(
+                Path(directory) / "report.html", report, experiment="DBOS"
+            ).read_text()
         self.assertIn('class="unavailable">Unavailable', html)
         self.assertIn("No verified source", html)
         self.assertIn("<dd>—</dd>", html)
@@ -28,7 +30,9 @@ class ReportOutputTest(unittest.TestCase):
         report["forecasts"][1].update(low_c=None, high_c=None)
         validate_report(report)
         with tempfile.TemporaryDirectory() as directory:
-            html = write_report(Path(directory) / "report.html", report, experiment="DBOS").read_text()
+            html = write_report(
+                Path(directory) / "report.html", report, experiment="DBOS"
+            ).read_text()
         self.assertIn("<strong>0°</strong>", html)
         self.assertEqual(html.count("<dd>0°</dd>"), 2)
 
@@ -77,7 +81,9 @@ class ReportOutputTest(unittest.TestCase):
                         path = write_report(None, report, experiment=experiment)
                         self.assertTrue(path.name.startswith(f"report_{experiment.lower()}_"))
                         self.assertEqual(path.parent, Path("artifacts") / experiment.lower())
-                        self.assertIn(f'<span class="experiment">{experiment}</span>', path.read_text())
-                        self.assertIn(f'{experiment} · Weather forecast', path.read_text())
+                        self.assertIn(
+                            f'<span class="experiment">{experiment}</span>', path.read_text()
+                        )
+                        self.assertIn(f"{experiment} · Weather forecast", path.read_text())
             finally:
                 os.chdir(previous)
