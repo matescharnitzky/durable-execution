@@ -69,4 +69,4 @@ make pi-status RUN_ID=report-1
 make pi-resume RUN_ID=report-1
 ```
 
-Pi uses local SQLite and saves reports under `artifacts/pi/`. See [Pi details](packages/pi-durable/README.md) for the crash demo, or the [recovery comparison](docs/recovery-comparison.md) for the native persistence boundaries.
+Pi uses local SQLite and saves reports under `artifacts/pi/`. See [Pi details](packages/pi-durable/README.md) for the crash demo.
