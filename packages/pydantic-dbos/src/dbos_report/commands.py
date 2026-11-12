@@ -18,6 +18,7 @@ from weather_core.report import validate_report, write_report
 
 @contextmanager
 def dbos_runtime():
+    """Launch DBOS with PostgreSQL storage and shut it down on exit."""
     settings = Settings()
     logfire.configure(
         service_name="dbos-report",
@@ -41,11 +42,13 @@ def dbos_runtime():
 
 
 def save_report(output: Path | None, answer: dict) -> None:
+    """Validate the workflow result and write its HTML report."""
     path = write_report(output, validate_report(answer), experiment="DBOS")
     typer.echo(f"Report saved to {path.resolve()}", err=True)
 
 
 def run(run_id: str, output: Path | None = None) -> None:
+    """Start a new DBOS workflow and export its report."""
     with dbos_runtime():
         if DBOS.get_workflow_status(run_id):
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
@@ -55,6 +58,7 @@ def run(run_id: str, output: Path | None = None) -> None:
 
 
 def status(run_id: str, as_json: bool = False) -> None:
+    """Show native workflow state and saved DBOS steps."""
     client = DBOSClient(system_database_url=Settings().database_url, dbos_system_schema="dbos")
     try:
         try:
@@ -100,6 +104,7 @@ def status(run_id: str, as_json: bool = False) -> None:
 
 
 def resume(run_id: str, output: Path | None = None) -> None:
+    """Resume or follow an existing workflow and export its report."""
     with dbos_runtime():
         state = DBOS.get_workflow_status(run_id)
         if state is None:

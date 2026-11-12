@@ -34,6 +34,7 @@ const streamWeather: ProviderStreams["streamSimple"] = (model, transcript, optio
     },
   });
 
+/** Configure the selected OpenAI model and its native stream adapter. */
 export function openaiModels(stream: ProviderStreams["streamSimple"] = streamWeather) {
   const openai = openaiProvider();
   const model = openai.getModels().find((model) => model.id === settings.openaiModel);

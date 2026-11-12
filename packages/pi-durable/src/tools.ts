@@ -5,6 +5,7 @@ import { obj, str } from "@earendil-works/pi-schema";
 import { webSearchInstructions } from "./config.ts";
 import { modelRef, openaiModels } from "./provider.ts";
 
+/** Search the web through a replay-safe native Pi tool. */
 export const webSearch = defineTool({
   name: "web_search",
   description: "Search the web for current information and source URLs for the query.",

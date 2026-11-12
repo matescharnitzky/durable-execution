@@ -22,6 +22,7 @@ from weather_core.report import validate_report, write_report
 
 @contextmanager
 def langgraph_agent(run_id: str, command: str):
+    """Yield a PostgreSQL-checkpointed agent and its run configuration."""
     settings = Settings()
     configure_telemetry(settings)
     with PostgresSaver.from_conn_string(settings.database_url) as saver:
@@ -47,6 +48,7 @@ def langgraph_agent(run_id: str, command: str):
 
 
 def save_report(output: Path | None, messages) -> None:
+    """Validate the final assistant message and write its HTML report."""
     answer = messages[-1].text.strip().removeprefix("```json").removesuffix("```").strip()
     report = validate_report(json.loads(answer))
     path = write_report(output, report, experiment="LangGraph")
@@ -57,6 +59,7 @@ def run(
     run_id: str,
     output: Path | None = None,
 ) -> None:
+    """Start a new checkpointed report and export the result."""
     with langgraph_agent(run_id, "run") as (agent, config):
         if agent.get_state(config).values:
             raise typer.BadParameter("Run ID already exists. Use resume.", param_hint="run_id")
@@ -72,6 +75,7 @@ def status(
     run_id: str,
     as_json: bool = False,
 ) -> None:
+    """Show saved messages and the next graph nodes for a run."""
     with langgraph_agent(run_id, "status") as (agent, config):
         try:
             state = agent.get_state(config)
@@ -127,6 +131,7 @@ def resume(
     run_id: str,
     output: Path | None = None,
 ) -> None:
+    """Continue from the saved checkpoint or export a completed report."""
     with langgraph_agent(run_id, "resume") as (agent, config):
         state = agent.get_state(config)
         if not state.values:

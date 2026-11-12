@@ -9,6 +9,7 @@ import {
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { NodeTracerProvider, SimpleSpanProcessor } from "@opentelemetry/sdk-trace-node";
 
+/** Export native Pi telemetry to Logfire without model content. */
 export function logfireTelemetry(runId: string) {
   const token = process.env.LOGFIRE_TOKEN;
   if (!token) return undefined;

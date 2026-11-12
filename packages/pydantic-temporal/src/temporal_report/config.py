@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Load Temporal settings from the environment with local defaults."""
+
     model_config = SettingsConfigDict(env_ignore_empty=True)
 
     temporal_address: str = "127.0.0.1:7233"

@@ -13,6 +13,7 @@ import { webSearch } from "./tools.ts";
 
 const requestId = "weather-report";
 
+/** Run, inspect, or resume a submission in its native SQLite store. */
 export async function report(
   command: string,
   runId: string,

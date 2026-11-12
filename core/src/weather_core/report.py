@@ -20,6 +20,7 @@ VALIDATOR = Draft202012Validator(
 
 
 def validate_report(result: dict) -> dict:
+    """Validate report fields and temperature ranges, returning the report."""
     VALIDATOR.validate(result)
     if any(
         row["low_c"] is not None and row["high_c"] is not None and row["low_c"] > row["high_c"]
@@ -30,6 +31,7 @@ def validate_report(result: dict) -> dict:
 
 
 def write_report(path: Path | None, report: dict, *, experiment: str) -> Path:
+    """Render and atomically save HTML, choosing a timestamped path when needed."""
     generated = datetime.now(UTC)
     if path is None:
         path = (

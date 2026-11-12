@@ -22,6 +22,7 @@ from weather_core.report import write_report
 
 @asynccontextmanager
 async def temporal_runtime():
+    """Connect the Temporal client and flush telemetry on exit."""
     try:
         client = await Client.connect(
             Settings().temporal_address,
@@ -36,6 +37,7 @@ async def temporal_runtime():
 
 
 async def run(run_id: str, output: Path | None = None) -> None:
+    """Start a new Temporal workflow and export its report."""
     async with temporal_runtime() as client:
         handle = await client.start_workflow(
             WeatherReport.run,
@@ -49,6 +51,7 @@ async def run(run_id: str, output: Path | None = None) -> None:
 
 
 async def resume(run_id: str, output: Path | None = None) -> None:
+    """Wait for an existing workflow and export its report."""
     async with temporal_runtime() as client:
         result = await client.get_workflow_handle(run_id).result()
         path = write_report(output, result, experiment="Temporal")
@@ -56,6 +59,7 @@ async def resume(run_id: str, output: Path | None = None) -> None:
 
 
 async def status(run_id: str, as_json: bool = False) -> None:
+    """Show native workflow state, activity attempts, and saved results."""
     async with temporal_runtime() as client:
         handle = client.get_workflow_handle(run_id)
         try:
@@ -148,6 +152,7 @@ async def status(run_id: str, as_json: bool = False) -> None:
 
 
 async def worker() -> None:
+    """Poll Temporal and execute registered workflows and activities."""
     async with temporal_runtime() as client:
         await Worker(
             client, task_queue=Settings().temporal_task_queue, workflows=[WeatherReport]
