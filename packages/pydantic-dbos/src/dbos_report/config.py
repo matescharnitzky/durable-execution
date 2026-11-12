@@ -14,7 +14,10 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         return URL.create(
-            "postgresql+psycopg", username=self.postgres_user,
+            "postgresql+psycopg",
+            username=self.postgres_user,
             password=self.postgres_password.get_secret_value(),
-            host="127.0.0.1", port=5432, database="dbos",
+            host="127.0.0.1",
+            port=5432,
+            database="dbos",
         ).render_as_string(hide_password=False)

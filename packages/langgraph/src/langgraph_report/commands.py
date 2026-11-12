@@ -19,6 +19,7 @@ from langgraph_report.tools import web_search
 from weather_core.prompts import SYSTEM_PROMPT
 from weather_core.report import validate_report, write_report
 
+
 @contextmanager
 def langgraph_agent(run_id: str, command: str):
     settings = Settings()
@@ -27,7 +28,9 @@ def langgraph_agent(run_id: str, command: str):
         if command != "status":
             saver.setup()
         agent = create_agent(
-            model=ChatOpenAI(model=settings.openai_model, model_kwargs={"parallel_tool_calls": False}),
+            model=ChatOpenAI(
+                model=settings.openai_model, model_kwargs={"parallel_tool_calls": False}
+            ),
             tools=[web_search],
             system_prompt=SYSTEM_PROMPT,
             checkpointer=saver,
@@ -92,7 +95,9 @@ def status(
 
         console = Console()
         console.print(f"Run: {run_id}", markup=False)
-        console.print(f"State: {summary['state']} · Next: {', '.join(state.next) or '—'}", markup=False)
+        console.print(
+            f"State: {summary['state']} · Next: {', '.join(state.next) or '—'}", markup=False
+        )
         if not messages:
             console.print("No saved turns.")
             return
@@ -112,7 +117,9 @@ def status(
                 )
             elif isinstance(message, ToolMessage):
                 kind = f"Tool: {message.name or 'result'}"
-            table.add_row(str(number), Text(kind), Text(shorten(content, width=240, placeholder="…")))
+            table.add_row(
+                str(number), Text(kind), Text(shorten(content, width=240, placeholder="…"))
+            )
         console.print(table)
 
 

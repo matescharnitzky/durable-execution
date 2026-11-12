@@ -20,9 +20,11 @@ class TemporalRuntimeTest(unittest.TestCase):
             self.assertTrue(asyncio.get_running_loop().is_running())
             return worker
 
-        with patch("temporal_report.commands.Client.connect", new=AsyncMock()), patch(
-            "temporal_report.commands.Worker", side_effect=construct_worker
-        ), patch("temporal_report.commands.logfire.force_flush"):
+        with (
+            patch("temporal_report.commands.Client.connect", new=AsyncMock()),
+            patch("temporal_report.commands.Worker", side_effect=construct_worker),
+            patch("temporal_report.commands.logfire.force_flush"),
+        ):
             result = CliRunner().invoke(app, ["worker"])
         self.assertEqual(result.exit_code, 0, result.output)
         worker.run.assert_awaited_once()
@@ -36,9 +38,10 @@ class TemporalRuntimeTest(unittest.TestCase):
             raise ValueError("Command failed")
 
         client.start_workflow = AsyncMock(side_effect=fail_start)
-        with patch("temporal_report.commands.Client.connect", new=AsyncMock(return_value=client)), patch(
-            "temporal_report.commands.logfire.force_flush"
-        ) as flush:
+        with (
+            patch("temporal_report.commands.Client.connect", new=AsyncMock(return_value=client)),
+            patch("temporal_report.commands.logfire.force_flush") as flush,
+        ):
             result = CliRunner().invoke(app, ["run", "example"])
         self.assertIsInstance(result.exception, ValueError)
         self.assertEqual(str(result.exception), "Command failed")
@@ -53,9 +56,13 @@ class TemporalRuntimeTest(unittest.TestCase):
         client = MagicMock()
         client.start_workflow = AsyncMock(return_value=handle)
         client.get_workflow_handle.return_value = handle
-        with tempfile.TemporaryDirectory() as directory, patch(
-            "temporal_report.commands.Client.connect", new=AsyncMock(return_value=client)
-        ) as connect, patch("temporal_report.commands.logfire.force_flush"):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch(
+                "temporal_report.commands.Client.connect", new=AsyncMock(return_value=client)
+            ) as connect,
+            patch("temporal_report.commands.logfire.force_flush"),
+        ):
             for command in ("run", "resume"):
                 output = Path(directory) / f"{command}.html"
                 result = CliRunner().invoke(app, [command, "example", "--output", str(output)])
@@ -90,9 +97,10 @@ class TemporalRuntimeTest(unittest.TestCase):
             return handle.describe.return_value
 
         handle.describe.side_effect = describe
-        with patch("temporal_report.commands.Client.connect", new=AsyncMock(side_effect=connect)), patch(
-            "temporal_report.commands.logfire.force_flush"
-        ) as flush:
+        with (
+            patch("temporal_report.commands.Client.connect", new=AsyncMock(side_effect=connect)),
+            patch("temporal_report.commands.logfire.force_flush") as flush,
+        ):
             result = CliRunner().invoke(app, ["status", "example", "--json"])
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(json.loads(result.output)["state"], "pending")

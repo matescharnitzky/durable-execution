@@ -10,12 +10,16 @@ app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
 
 @app.command("run")
-def run_command(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
+def run_command(
+    run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None
+) -> None:
     asyncio.run(run(run_id, output))
 
 
 @app.command("resume")
-def resume_command(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
+def resume_command(
+    run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None
+) -> None:
     asyncio.run(resume(run_id, output))
 
 

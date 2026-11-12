@@ -9,7 +9,9 @@ app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
 
 @app.command("run")
-def run_command(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
+def run_command(
+    run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None
+) -> None:
     run(run_id, output)
 
 
@@ -19,5 +21,7 @@ def status_command(run_id: str, as_json: Annotated[bool, typer.Option("--json")]
 
 
 @app.command("resume")
-def resume_command(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
+def resume_command(
+    run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None
+) -> None:
     resume(run_id, output)

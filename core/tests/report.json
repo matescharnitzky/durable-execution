@@ -6,14 +6,14 @@
       "low_c": -2,
       "high_c": 3,
       "conditions": "Overcast",
-      "sources": [{"title": "Fixture forecast", "url": "https://example.com/weather/budapest"}]
+      "sources": [{ "title": "Fixture forecast", "url": "https://example.com/weather/budapest" }]
     },
     {
       "city": "Vienna, Austria",
       "low_c": -3,
       "high_c": 2,
       "conditions": "Light snow",
-      "sources": [{"title": "Fixture forecast", "url": "https://example.com/weather/vienna"}]
+      "sources": [{ "title": "Fixture forecast", "url": "https://example.com/weather/vienna" }]
     }
   ],
   "summary": "Cold in both cities, with light snow in Vienna."
