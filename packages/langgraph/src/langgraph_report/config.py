@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     postgres_user: str = "weather"
     postgres_password: SecretStr = SecretStr("weather-local")
     langgraph_database_url: str | None = None
-    openai_model: str = "gpt-5.4-mini"
+    openai_model: str = "gpt-6-luna"
     logfire_token: SecretStr | None = None
 
     @property
