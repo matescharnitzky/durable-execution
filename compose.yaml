@@ -6,15 +6,15 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-weather}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-weather-local}
-      POSTGRES_DB: ${POSTGRES_DB:-weather}
+      POSTGRES_DB: postgres
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d postgres"]
       interval: 1s
       timeout: 5s
       retries: 30
     volumes:
       - postgres:/var/lib/postgresql/data
-      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/001-schemas.sql:ro
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/001-databases.sql:ro
 
   pgadmin:
     image: dpage/pgadmin4:9.18
@@ -23,6 +23,65 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?Set PGADMIN_EMAIL in .env}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Set PGADMIN_PASSWORD in .env}
+
+  temporal-schema:
+    image: temporalio/admin-tools:1.32.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-weather}
+      SQL_PASSWORD: ${POSTGRES_PASSWORD:-weather-local}
+    volumes:
+      - ./scripts/temporal-schema.sh:/scripts/temporal-schema.sh:ro
+    entrypoint: ["/bin/sh", "/scripts/temporal-schema.sh"]
+
+  temporal:
+    image: temporalio/server:1.32.2
+    depends_on:
+      temporal-schema:
+        condition: service_completed_successfully
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_SEEDS: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-weather}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-weather-local}
+      BIND_ON_IP: 0.0.0.0
+      DYNAMIC_CONFIG_FILE_PATH: /etc/temporal/config/dynamic.yaml
+    volumes:
+      - ./config/temporal-dynamic.yaml:/etc/temporal/config/dynamic.yaml:ro
+    ports:
+      - "127.0.0.1:7233:7233"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "7233"]
+      interval: 2s
+      timeout: 5s
+      start_period: 10s
+      retries: 30
+
+  temporal-namespace:
+    image: temporalio/admin-tools:1.32.2
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        temporal operator namespace describe --namespace default >/dev/null 2>&1 ||
+          temporal operator namespace create --namespace default --retention 1d
+
+  temporal-ui:
+    image: temporalio/ui:2.56.1
+    depends_on:
+      temporal-namespace:
+        condition: service_completed_successfully
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - "127.0.0.1:8233:8080"
 
 volumes:
   postgres:

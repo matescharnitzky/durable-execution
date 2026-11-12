@@ -8,18 +8,16 @@ class Settings(BaseSettings):
 
     postgres_user: str = "weather"
     postgres_password: SecretStr = SecretStr("weather-local")
-    postgres_db: str = "weather"
     langgraph_database_url: str | None = None
-    openai_model: str = "gpt-5.4-mini"
+    openai_model: str = "gpt-6-luna"
     logfire_token: SecretStr | None = None
 
     @property
     def database_url(self) -> str:
-        connection = self.langgraph_database_url or make_conninfo(
+        return self.langgraph_database_url or make_conninfo(
             host="127.0.0.1",
             port=5432,
-            dbname=self.postgres_db,
+            dbname="langgraph",
             user=self.postgres_user,
             password=self.postgres_password.get_secret_value(),
         )
-        return make_conninfo(connection, options="-c search_path=langgraph")
