@@ -18,7 +18,7 @@ hooks:
 	uv run --locked pre-commit install
 
 test:
-	uv run --locked --package weather-core python -m unittest discover -s core/tests
+	uv run --locked --package weather-core python -m unittest discover -s packages/core/tests
 	uv run --locked --package langgraph-report python -m unittest discover -s packages/langgraph/tests
 	uv run --locked --package dbos-report python -m unittest discover -s packages/pydantic-dbos/tests
 	uv run --locked --package temporal-report python -m unittest discover -s packages/pydantic-temporal/tests

@@ -50,7 +50,7 @@ class TemporalRuntimeTest(unittest.TestCase):
         flush.assert_called_once()
 
     def test_run_and_resume_export_the_native_workflow_result(self):
-        fixture = Path(__file__).resolve().parents[3] / "core/tests/report.json"
+        fixture = Path(__file__).resolve().parents[2] / "core/tests/report.json"
         handle = MagicMock()
         handle.result = AsyncMock(return_value=json.loads(fixture.read_text()))
         client = MagicMock()

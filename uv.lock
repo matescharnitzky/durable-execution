@@ -201,7 +201,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2,<3" },
     { name = "rich", specifier = ">=15,<16" },
     { name = "typer", specifier = ">=0.16,<1" },
-    { name = "weather-core", editable = "core" },
+    { name = "weather-core", editable = "packages/core" },
 ]
 
 [[package]]
@@ -609,7 +609,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2,<3" },
     { name = "rich", specifier = ">=15,<16" },
     { name = "typer", specifier = ">=0.16,<1" },
-    { name = "weather-core", editable = "core" },
+    { name = "weather-core", editable = "packages/core" },
 ]
 
 [[package]]
@@ -1397,7 +1397,7 @@ requires-dist = [
     { name = "rich", specifier = ">=15,<16" },
     { name = "temporalio", extras = ["opentelemetry"], specifier = ">=1.20,<2" },
     { name = "typer", specifier = ">=0.16,<1" },
-    { name = "weather-core", editable = "core" },
+    { name = "weather-core", editable = "packages/core" },
 ]
 
 [[package]]
@@ -1571,7 +1571,7 @@ wheels = [
 [[package]]
 name = "weather-core"
 version = "0.1.0"
-source = { editable = "core" }
+source = { editable = "packages/core" }
 dependencies = [
     { name = "jsonschema" },
     { name = "typer" },

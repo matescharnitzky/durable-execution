@@ -3,7 +3,7 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { mock } from "node:test";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai/utils/event-stream";
 
-const fixture = readFileSync(new URL("../../../core/tests/report.json", import.meta.url), "utf8");
+const fixture = readFileSync(new URL("../../core/tests/report.json", import.meta.url), "utf8");
 const queries = ["current date and tomorrow date", "Budapest tomorrow", "Vienna tomorrow"];
 const source = {
   type: "url_citation",

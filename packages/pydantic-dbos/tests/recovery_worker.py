@@ -25,7 +25,7 @@ from dbos_report.agent import report
 from dbos_report.tools import web_search
 from weather_core.report import REPORT_SCHEMA
 
-fixture = json.loads((Path(__file__).resolve().parents[3] / "core/tests/report.json").read_text())
+fixture = json.loads((Path(__file__).resolve().parents[2] / "core/tests/report.json").read_text())
 phase = os.environ["DBOS_TEST_PHASE"]
 
 
