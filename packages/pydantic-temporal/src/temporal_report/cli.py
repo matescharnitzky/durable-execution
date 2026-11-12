@@ -1,6 +1,6 @@
 import asyncio
 import json
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 from pathlib import Path
 from textwrap import shorten
 from typing import Annotated
@@ -24,35 +24,32 @@ from weather_core.report import write_report
 app = typer.Typer(no_args_is_help=True, pretty_exceptions_show_locals=False)
 
 
-@contextmanager
-def temporal_runtime():
-    with asyncio.Runner() as runner:
-        try:
-            client = runner.run(Client.connect(
-                Settings().temporal_address,
-                plugins=[PydanticAIPlugin(), LogfirePlugin(setup_logfire=configure_telemetry, metrics=False)],
-            ))
-            yield client, runner
-        finally:
-            logfire.force_flush()
+@asynccontextmanager
+async def temporal_runtime():
+    try:
+        client = await Client.connect(
+            Settings().temporal_address,
+            plugins=[PydanticAIPlugin(), LogfirePlugin(setup_logfire=configure_telemetry, metrics=False)],
+        )
+        yield client
+    finally:
+        logfire.force_flush()
 
 
-@app.command()
-def run(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
-    with temporal_runtime() as (client, runner):
-        handle = runner.run(client.start_workflow(
+async def run(run_id: str, output: Path | None = None) -> None:
+    async with temporal_runtime() as client:
+        handle = await client.start_workflow(
             WeatherReport.run, id=run_id, task_queue=Settings().temporal_task_queue,
             id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
-        ))
-        result = runner.run(handle.result())
+        )
+        result = await handle.result()
         path = write_report(output, result, experiment="Temporal")
         typer.echo(f"Report saved to {path.resolve()}", err=True)
 
 
-@app.command()
-def resume(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
-    with temporal_runtime() as (client, runner):
-        result = runner.run(client.get_workflow_handle(run_id).result())
+async def resume(run_id: str, output: Path | None = None) -> None:
+    async with temporal_runtime() as client:
+        result = await client.get_workflow_handle(run_id).result()
         path = write_report(output, result, experiment="Temporal")
         typer.echo(f"Report saved to {path.resolve()}", err=True)
 
@@ -103,17 +100,31 @@ async def inspect(client: Client, run_id: str, as_json: bool) -> None:
     console.print(table)
 
 
-@app.command()
-def status(run_id: str, as_json: Annotated[bool, typer.Option("--json")] = False) -> None:
-    with temporal_runtime() as (client, runner):
-        runner.run(inspect(client, run_id, as_json))
+async def status(run_id: str, as_json: bool = False) -> None:
+    async with temporal_runtime() as client:
+        await inspect(client, run_id, as_json)
 
 
-async def run_worker(client: Client) -> None:
-    await Worker(client, task_queue=Settings().temporal_task_queue, workflows=[WeatherReport]).run()
+async def worker() -> None:
+    async with temporal_runtime() as client:
+        await Worker(client, task_queue=Settings().temporal_task_queue, workflows=[WeatherReport]).run()
 
 
-@app.command()
-def worker() -> None:
-    with temporal_runtime() as (client, runner):
-        runner.run(run_worker(client))
+@app.command("run")
+def run_command(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
+    asyncio.run(run(run_id, output))
+
+
+@app.command("resume")
+def resume_command(run_id: str, output: Annotated[Path | None, typer.Option("--output")] = None) -> None:
+    asyncio.run(resume(run_id, output))
+
+
+@app.command("status")
+def status_command(run_id: str, as_json: Annotated[bool, typer.Option("--json")] = False) -> None:
+    asyncio.run(status(run_id, as_json))
+
+
+@app.command("worker")
+def worker_command() -> None:
+    asyncio.run(worker())
