@@ -11,7 +11,7 @@ make setup
 make check
 ```
 
-Copy `.env.example` to `.env` if you haven't configured it yet. Set `OPENAI_API_KEY`, `PGADMIN_EMAIL`, and `PGADMIN_PASSWORD`, plus optionally `LOGFIRE_TOKEN`. Set `POSTGRES_USER` and `POSTGRES_PASSWORD` to use your database credentials; otherwise local defaults apply. The OpenAI key covers both model calls and web search.
+Copy `.env.example` to `.env` if you haven't configured it yet. Set `OPENAI_API_KEY`, `PGADMIN_EMAIL`, and `PGADMIN_PASSWORD`, plus optionally `LOGFIRE_TOKEN`. Set `POSTGRES_USER` and `POSTGRES_PASSWORD` to use your database credentials; otherwise local defaults apply. The OpenAI key covers both model calls and web search. All implementations default to `gpt-6-luna`; `OPENAI_MODEL` overrides the model.
 
 Plain values, exported variables, and `op://` references are supported. For 1Password, install its CLI, enable desktop app integration, and use field references from the `durable-execution` item in the Development vault. Make targets resolve them through `scripts/1password.sh`.
 
