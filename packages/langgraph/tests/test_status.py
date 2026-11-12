@@ -19,7 +19,7 @@ class SavedTurnsTest(unittest.TestCase):
         agent.get_state.side_effect = error
         context = MagicMock()
         context.__enter__.return_value = (agent, {})
-        with patch("langgraph_report.cli.langgraph_agent", return_value=context):
+        with patch("langgraph_report.commands.langgraph_agent", return_value=context):
             result = CliRunner().invoke(app, ["status", "example", *options])
         self.assertEqual(result.exit_code, 0, result.output)
         return result.output
