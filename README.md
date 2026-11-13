@@ -2,6 +2,12 @@
 
 Compare how LangGraph, Pydantic AI with DBOS, Pydantic AI with Temporal, and Pi Durable recover interrupted weather report runs.
 
+## Documentation
+
+Use `make serve-docs` to preview the existing READMEs as a Zensical site or
+`make build-docs` to build the static site in `site/`. The source READMEs stay in place;
+rerun the preview command after editing them.
+
 ## Setup
 
 Install uv 0.13.5, Node from `.nvmrc`, and Docker with Compose. uv installs Python from `.python-version`. If you use nvm, run `nvm install`.

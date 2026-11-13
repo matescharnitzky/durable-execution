@@ -1,4 +1,4 @@
-.PHONY: install check lint format test pi-run pi-status pi-resume temporal-run temporal-status temporal-resume temporal-worker dbos-run dbos-status dbos-resume up down postgres langgraph-run langgraph-status langgraph-resume
+.PHONY: build-docs serve-docs prepare-docs install check lint format test pi-run pi-status pi-resume temporal-run temporal-status temporal-resume temporal-worker dbos-run dbos-status dbos-resume up down postgres langgraph-run langgraph-status langgraph-resume
 
 install:
 	uv sync --locked --all-packages
@@ -75,3 +75,18 @@ pi-status:
 
 pi-resume:
 	@./scripts/1password.sh node --env-file-if-exists=.env packages/pi-durable/src/cli.ts resume "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+# Stage only the existing documentation, preserving relative README links.
+prepare-docs:
+	mkdir -p .cache/docs
+	cp README.md .cache/docs/README.md
+	@for readme in packages/*/README.md; do \
+		mkdir -p ".cache/docs/$$(dirname "$$readme")"; \
+		cp "$$readme" ".cache/docs/$$readme"; \
+	done
+
+build-docs: prepare-docs
+	uv run --locked --group docs zensical build --strict
+
+serve-docs: prepare-docs
+	uv run --locked --group docs zensical serve
