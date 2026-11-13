@@ -78,3 +78,7 @@ make pi-resume RUN_ID=report-1
 ```
 
 Pi uses local SQLite and saves reports under `artifacts/pi/`. See [Pi details](packages/pi-durable/README.md) for the crash demo.
+
+## Pydantic AI with pgtask
+
+See the [runtime README](packages/pydantic-pgtask/README.md) for native PostgreSQL tasks, worker setup, and recovery.

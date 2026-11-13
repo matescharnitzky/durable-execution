@@ -1,5 +1,5 @@
 [tool.uv.workspace]
-members = ["packages/core", "packages/langgraph", "packages/pydantic-dbos", "packages/pydantic-temporal"]
+members = ["packages/core", "packages/langgraph", "packages/pydantic-dbos", "packages/pydantic-temporal", "packages/pydantic-pgtask"]
 
 [dependency-groups]
 dev = [
@@ -28,6 +28,6 @@ testpaths = ["packages"]
 addopts = "--import-mode=importlib"
 
 [tool.pyright]
-include = ["packages/core/src", "packages/langgraph/src", "packages/pydantic-dbos/src", "packages/pydantic-temporal/src"]
+include = ["packages/core/src", "packages/langgraph/src", "packages/pydantic-dbos/src", "packages/pydantic-temporal/src", "packages/pydantic-pgtask/src"]
 pythonVersion = "3.13"
 typeCheckingMode = "basic"

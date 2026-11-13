@@ -6,6 +6,7 @@ requires-python = "==3.13.*"
 members = [
     "dbos-report",
     "langgraph-report",
+    "pgtask-report",
     "temporal-report",
     "weather-core",
 ]
@@ -973,6 +974,50 @@ wheels = [
 ]
 
 [[package]]
+name = "pgtask"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "psycopg" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/74/85/645b268f8f6b15400b5a3baa4901e963703a870d19c0cdee5858918b726e/pgtask-0.4.0.tar.gz", hash = "sha256:6264fa78c75f3d0f169ecdd5b5ce08090c9393cce7eaa0e1c738f5818f3cd562", size = 239318, upload-time = "2026-10-07T02:00:03.448Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e8/35/6888ba8ce26ff85a4242a10f67c7db7a9e2a04ab665fdf7ab5f02d2310c2/pgtask-0.4.0-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:6b0dbe2ff788ddb0dabaf3b378b8b15b7fe11d6980384daf0cae96207a6f23f7", size = 4309193, upload-time = "2026-10-07T01:59:54.266Z" },
+    { url = "https://files.pythonhosted.org/packages/15/cc/c429c63be8503e8d251e3f9dda24e502cb81003cfd086d5e24b459e5fcb7/pgtask-0.4.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:633536d8df80cff48eedb8b7ca987020d880033ba093fcf547d8beb29548507d", size = 4164677, upload-time = "2026-10-07T01:59:56.294Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/8a/662120bedf4ebb7adaecbf2b79bd31d0fa28ee4229a6e3733fea87b86b4f/pgtask-0.4.0-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:4872defd7be392381899e1b5e9d640d46f99121d0c4e394acbef8b46c9bec7da", size = 4580446, upload-time = "2026-10-07T01:59:58.021Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/6c/1d86cf8c641340efd6c561a5367d443cd554cdf06c51f445582c4450bbe5/pgtask-0.4.0-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:bb13b2980ae90054eeb87a76374fc7776fdac8b515eed70901576382f10e4e10", size = 4592066, upload-time = "2026-10-07T01:59:59.683Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/b6/93767ff61a2cae27c0717c32c559eec066d368684161054e006d8d0471b7/pgtask-0.4.0-cp310-abi3-win_amd64.whl", hash = "sha256:e094b497acdc8eac3a39fd39094e8b26b8a50a657b3baf16ec43e4e4669750d4", size = 3873577, upload-time = "2026-10-07T02:00:01.399Z" },
+]
+
+[[package]]
+name = "pgtask-report"
+version = "0.1.0"
+source = { editable = "packages/pydantic-pgtask" }
+dependencies = [
+    { name = "logfire" },
+    { name = "openai" },
+    { name = "pydantic-ai-harness", extra = ["pgtask"] },
+    { name = "pydantic-ai-slim", extra = ["openai"] },
+    { name = "pydantic-settings" },
+    { name = "rich" },
+    { name = "typer" },
+    { name = "weather-core" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "logfire", specifier = ">=5,<6" },
+    { name = "openai", specifier = ">=3.31,<4" },
+    { name = "pydantic-ai-harness", extras = ["pgtask"], specifier = "==0.68.0" },
+    { name = "pydantic-ai-slim", extras = ["openai"], specifier = ">=2.68,<3" },
+    { name = "pydantic-settings", specifier = ">=2,<3" },
+    { name = "rich", specifier = ">=15,<16" },
+    { name = "typer", specifier = ">=0.16,<1" },
+    { name = "weather-core", editable = "packages/core" },
+]
+
+[[package]]
 name = "pluggy"
 version = "1.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1059,8 +1104,27 @@ wheels = [
 ]
 
 [[package]]
+name = "pydantic-ai-harness"
+version = "0.68.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "genai-prices" },
+    { name = "httpx2" },
+    { name = "pydantic-ai-slim" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/37/8d/cdfd58aa4b235b8d68a9a464444bbecd2e0a266d07ea8c4dc2d16cd793bf/pydantic_ai_harness-0.68.0.tar.gz", hash = "sha256:be4a33b72694ce2f4975ce20801976c1c6e9ff58a9157facc93ae2fded654ee6", size = 1573822, upload-time = "2026-11-12T02:30:18.186Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ff/5f/b6a4a45e7f5ea1e2a530a349b1f73444c813ac4b83321813f83c7f926aeb/pydantic_ai_harness-0.68.0-py3-none-any.whl", hash = "sha256:b74d420a21e9cd3183eec83da63e86b8d86d53ad120fbe6e6255897819c03157", size = 1915154, upload-time = "2026-11-12T02:30:05.454Z" },
+]
+
+[package.optional-dependencies]
+pgtask = [
+    { name = "pgtask" },
+]
+
+[[package]]
 name = "pydantic-ai-slim"
-version = "2.67.0"
+version = "2.68.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -1072,9 +1136,9 @@ dependencies = [
     { name = "pydantic-graph" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b4/a3/0620670b9c4320e904a1bea5cbcf0b5b1ad60c26a78cabb2ad8643c520d8/pydantic_ai_slim-2.67.0.tar.gz", hash = "sha256:ee0fc3e74c921c8b27c20f6fd0b12e4d30e07f86fe41a803244e615873000a08", size = 2508350, upload-time = "2026-11-11T00:23:46.125Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7c/7c/3638e15a545b080980bafaf5efaf28764f8637a7490d6fd12b772d09a518/pydantic_ai_slim-2.68.0.tar.gz", hash = "sha256:7e545ad147ee955d3ee83532ad793570a444a3e7c290328c4809b67a32c78a01", size = 2565567, upload-time = "2026-11-12T02:30:19.822Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c2/cf/7a0df1fb960d78e1717188397b556c89642f547d9cc925aeff5236723762/pydantic_ai_slim-2.67.0-py3-none-any.whl", hash = "sha256:1c73f35a90b42a1f31b2d5237d4b57a4eddc8cdb78bc2536ac4030986e4c17fc", size = 2879676, upload-time = "2026-11-11T00:23:33.345Z" },
+    { url = "https://files.pythonhosted.org/packages/04/0e/fa173c5919b410923b849d6ab36da13b44e93c0ef45a6e3f9654b17104af/pydantic_ai_slim-2.68.0-py3-none-any.whl", hash = "sha256:bb2fe81f198b77da7686f7b78c78c8a8ce966807c77d9ae277950fc20b77b165", size = 2951595, upload-time = "2026-11-12T02:30:07.59Z" },
 ]
 
 [package.optional-dependencies]
@@ -1120,7 +1184,7 @@ wheels = [
 
 [[package]]
 name = "pydantic-graph"
-version = "2.67.0"
+version = "2.68.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -1128,9 +1192,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/5d/1b70eb3395c481191e96d4907da7a6cb612bc142ac1af9ba456104492455/pydantic_graph-2.67.0.tar.gz", hash = "sha256:b39fa3b3634ba7b9451504b1c4f088eef078f3507d9168334806a16b13199bb6", size = 46906, upload-time = "2026-11-11T00:23:49.913Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/23/f4/67f8d1f42806f90c46bb902b32f537fe7fa125575b5bb7707523508eeb4b/pydantic_graph-2.68.0.tar.gz", hash = "sha256:1314df1961b0decaa39176531a7a9b63b37c437e69a6463b042e0a1924fadea8", size = 46908, upload-time = "2026-11-12T02:30:24.187Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/bd/666bcba709cb204d082ce65c7942601a096d4e71cdcea28e8a4f47f19e4d/pydantic_graph-2.67.0-py3-none-any.whl", hash = "sha256:a36e738849db3bf72af0405e4734b4cc2932825bf93a62d6a99812e93e08cf58", size = 54117, upload-time = "2026-11-11T00:23:39.735Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/57/203b8563d18e715e4d8d22812459d2b87f955ffa9f6c5bf813a5f67fb3b0/pydantic_graph-2.68.0-py3-none-any.whl", hash = "sha256:3428c563bb6346aeeda28a79322cfcbe4e0087d7a23881ec2f1b06a95e983f00", size = 54117, upload-time = "2026-11-12T02:30:13.278Z" },
 ]
 
 [[package]]
