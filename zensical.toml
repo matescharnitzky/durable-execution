@@ -1,0 +1,23 @@
+[project]
+site_name = "Durable execution lab"
+site_description = "Compare recovery of agentic weather-report workflows"
+repo_url = "https://github.com/matescharnitzky/durable-execution"
+nav = [
+  { "Overview" = "index.md" },
+  { "Getting started" = "getting-started.md" },
+  { "Architecture" = "architecture.md" },
+  { "Recovery and validation" = "recovery.md" },
+  { "Runtimes" = [
+    { "LangGraph" = "runtimes/langgraph.md" },
+    { "Pydantic AI + DBOS" = "runtimes/dbos.md" },
+    { "Pydantic AI + Temporal" = "runtimes/temporal.md" },
+    { "Pi Durable" = "runtimes/pi.md" },
+  ] },
+]
+
+[project.theme]
+features = ["content.code.copy", "navigation.sections", "navigation.footer"]
+
+[project.markdown_extensions]
+admonition = {}
+pymdownx.superfences = {}

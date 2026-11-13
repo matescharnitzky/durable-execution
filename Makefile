@@ -1,4 +1,4 @@
-.PHONY: install check lint format test pi-run pi-status pi-resume temporal-run temporal-status temporal-resume temporal-worker dbos-run dbos-status dbos-resume up down postgres langgraph-run langgraph-status langgraph-resume
+.PHONY: docs-build docs-serve install check lint format test pi-run pi-status pi-resume temporal-run temporal-status temporal-resume temporal-worker dbos-run dbos-status dbos-resume up down postgres langgraph-run langgraph-status langgraph-resume
 
 install:
 	uv sync --locked --all-packages
@@ -75,3 +75,9 @@ pi-status:
 
 pi-resume:
 	@./scripts/1password.sh node --env-file-if-exists=.env packages/pi-durable/src/cli.ts resume "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+docs-build:
+	uv run --locked --group docs zensical build --strict
+
+docs-serve:
+	uv run --locked --group docs zensical serve

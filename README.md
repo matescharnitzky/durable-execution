@@ -2,6 +2,11 @@
 
 Compare how LangGraph, Pydantic AI with DBOS, Pydantic AI with Temporal, and Pi Durable recover interrupted weather report runs.
 
+## Documentation
+
+See the [documentation](docs/index.md) for installation, architecture, and recovery guides.
+Use `make docs-serve` to preview the Zensical site or `make docs-build` to build it.
+
 ## Setup
 
 Install uv 0.13.5, Node from `.nvmrc`, and Docker with Compose. uv installs Python from `.python-version`. If you use nvm, run `nvm install`.
