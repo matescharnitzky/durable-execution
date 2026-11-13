@@ -107,3 +107,20 @@ pgtask-resume:
 
 pgtask-worker:
 	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked pgtask-report worker
+
+.PHONY: absurd-install absurd-run absurd-status absurd-resume absurd-worker
+
+absurd-install:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked absurd-report install
+
+absurd-run:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked absurd-report run "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+absurd-status:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked absurd-report status "$(TASK_ID)" $(STATUS_ARGS)
+
+absurd-resume:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked absurd-report resume "$(TASK_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+absurd-worker:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked absurd-report worker
