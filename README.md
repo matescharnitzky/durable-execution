@@ -82,3 +82,7 @@ Pi uses local SQLite and saves reports under `artifacts/pi/`. See [Pi details](p
 ## Pydantic AI with pgtask
 
 See the [runtime README](packages/pydantic-pgtask/README.md) for native PostgreSQL tasks, worker setup, and recovery.
+
+## Pydantic AI with absurd
+
+See the [runtime README](packages/pydantic-absurd/README.md) for native PostgreSQL tasks, worker setup, and recovery.
