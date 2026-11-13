@@ -1,27 +1,25 @@
-.PHONY: setup check lint format test hooks pi-run pi-status pi-resume temporal-run temporal-status temporal-resume temporal-worker dbos-run dbos-status dbos-resume up down postgres langgraph-run langgraph-status langgraph-resume
+.PHONY: install check lint format test pi-run pi-status pi-resume temporal-run temporal-status temporal-resume temporal-worker dbos-run dbos-status dbos-resume up down postgres langgraph-run langgraph-status langgraph-resume
 
-setup:
+install:
 	uv sync --locked --all-packages
 	npm ci --ignore-scripts
 
 check: lint test
 
 lint:
-	uv run --locked pre-commit run --all-files --show-diff-on-failure
+	uv run --all-packages --locked ruff check .
+	uv run --all-packages --locked ruff format --check .
+	uv run --all-packages --locked pyright
+	npm run lint
+	uv run --locked shellcheck scripts/*.sh tests/*.sh
 
 format:
 	uv run --locked ruff check --fix .
 	uv run --locked ruff format .
 	npm run format
 
-hooks:
-	uv run --locked pre-commit install
-
 test:
-	uv run --locked --package weather-core python -m unittest discover -s packages/core/tests
-	uv run --locked --package langgraph-report python -m unittest discover -s packages/langgraph/tests
-	uv run --locked --package dbos-report python -m unittest discover -s packages/pydantic-dbos/tests
-	uv run --locked --package temporal-report python -m unittest discover -s packages/pydantic-temporal/tests
+	uv run --all-packages --locked pytest
 	npm exec --workspace @durable-execution/pi-durable -- tsc --noEmit
 	node --test packages/pi-durable/tests/recovery.test.mjs
 

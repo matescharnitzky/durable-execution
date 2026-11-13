@@ -16,5 +16,5 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           version: "0.13.5"
-      - run: make setup
+      - run: make install
       - run: make check

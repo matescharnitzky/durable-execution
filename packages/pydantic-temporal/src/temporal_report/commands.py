@@ -73,7 +73,7 @@ async def status(run_id: str, as_json: bool = False) -> None:
                 else "Unknown run ID."
             )
             return
-        native = description.status.name
+        native = description.status.name if description.status is not None else "UNKNOWN"
         state = {"RUNNING": "pending", "COMPLETED": "complete"}.get(native, "failed")
         history = await handle.fetch_history()
         rows = []
