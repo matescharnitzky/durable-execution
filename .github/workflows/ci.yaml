@@ -18,4 +18,4 @@ jobs:
           version: "0.13.5"
       - run: make install
       - run: make check
-      - run: make docs-build
+      - run: make build-docs

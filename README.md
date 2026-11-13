@@ -4,8 +4,9 @@ Compare how LangGraph, Pydantic AI with DBOS, Pydantic AI with Temporal, and Pi 
 
 ## Documentation
 
-See the [documentation](docs/index.md) for installation, architecture, and recovery guides.
-Use `make docs-serve` to preview the Zensical site or `make docs-build` to build it.
+Use `make serve-docs` to preview the existing READMEs as a Zensical site or
+`make build-docs` to build the static site in `site/`. The source READMEs stay in place;
+rerun the preview command after editing them.
 
 ## Setup
 
