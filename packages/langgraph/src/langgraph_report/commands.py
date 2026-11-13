@@ -6,6 +6,7 @@ from textwrap import shorten
 import typer
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.postgres import PostgresSaver
 from psycopg.errors import UndefinedColumn, UndefinedTable
@@ -36,7 +37,7 @@ def langgraph_agent(run_id: str, command: str):
             system_prompt=SYSTEM_PROMPT,
             checkpointer=saver,
         )
-        config = {
+        config: RunnableConfig = {
             "configurable": {"thread_id": run_id},
             "metadata": {
                 "durable.runtime": "langgraph",
