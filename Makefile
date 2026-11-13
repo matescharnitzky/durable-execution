@@ -90,3 +90,20 @@ build-docs: prepare-docs
 
 serve-docs: prepare-docs
 	uv run --locked --group docs zensical serve
+
+.PHONY: pgtask-install pgtask-run pgtask-status pgtask-resume pgtask-worker
+
+pgtask-install:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked pgtask-report install
+
+pgtask-run:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked pgtask-report run "$(RUN_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+pgtask-status:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked pgtask-report status "$(TASK_ID)" $(STATUS_ARGS)
+
+pgtask-resume:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked pgtask-report resume "$(TASK_ID)" $(if $(OUTPUT),--output "$(OUTPUT)")
+
+pgtask-worker:
+	@./scripts/1password.sh uv run $(UV_ENV_FILE) --locked pgtask-report worker
